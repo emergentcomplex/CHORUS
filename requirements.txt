@@ -1,0 +1,17 @@
+# Filename: requirements.txt
+google-generativeai
+mysql-connector-python
+flask
+htmx-flask
+tqdm
+markdown
+httpx
+Pillow
+tiktoken
+sentence-transformers
+numpy
+pypandoc
+pytest
+python-dotenv
+PyPDF2
+pdoc

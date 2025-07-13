@@ -65,12 +65,6 @@ graph TD
     style K fill:#4a044e,stroke:#a21caf,color:#fff
 ```
 
-
-
-<details>
-<summary><strong>README.md (UPDATED Setup Section)</strong></summary>
-Generated markdown
-
       
 ## Setup & Installation
 
@@ -88,10 +82,6 @@ sudo apt-get update
 sudo apt-get install -y python3-pip python3-venv mariadb-server git pandoc texlive-xetex
 
     
-
-IGNORE_WHEN_COPYING_START
-Use code with caution. Markdown
-IGNORE_WHEN_COPYING_END
 2. Clone the Repository
 Generated bash
 
@@ -100,10 +90,6 @@ git clone <your-repo-url>
 cd Chorus
 
     
-
-IGNORE_WHEN_COPYING_START
-Use code with caution. Bash
-IGNORE_WHEN_COPYING_END
 3. Create and Activate Virtual Environment
 
 This project requires a Python virtual environment to ensure dependencies do not conflict with your system's Python installation.
@@ -116,11 +102,7 @@ python3 -m venv venv
 # Activate it (you must do this every time you open a new terminal to work on the project)
 source venv/bin/activate
 
-    
 
-IGNORE_WHEN_COPYING_START
-Use code with caution. Bash
-IGNORE_WHEN_COPYING_END
 4. Install Dependencies
 
 Once your virtual environment is active, install the required packages.
@@ -129,11 +111,7 @@ Generated bash
       
 pip install -r requirements.txt
 
-    
 
-IGNORE_WHEN_COPYING_START
-Use code with caution. Bash
-IGNORE_WHEN_COPYING_END
 5. Configure the Environment
 
 Copy the example configuration file and fill in your credentials. The .env file is ignored by Git and will not be committed.
@@ -144,11 +122,6 @@ cp .env.example .env
 nano .env
 
     
-
-IGNORE_WHEN_COPYING_START
-Use code with caution. Bash
-IGNORE_WHEN_COPYING_END
-
 You will need to get free API keys from:
 
     Google AI Studio
@@ -158,3 +131,6 @@ You will need to get free API keys from:
     GovInfo API
 
 6. Set Up the Database
+
+```
+

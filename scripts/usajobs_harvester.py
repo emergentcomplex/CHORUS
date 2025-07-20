@@ -65,22 +65,19 @@ class LiveJobSearchResult(BaseModel):
 # --- Harvester Class ---
 
 class USAJobsHarvester:
-    """
-    A client for interacting with the USAJOBS API.
-    """
-    def __init__(self, user_agent: str, auth_key: str):
+    def __init__(self, auth_key: str, user_agent: str = "CHORUS-OSINT-Engine/1.0"): # <-- MODIFIED
         self.api_host = "data.usajobs.gov"
-        if not user_agent or not auth_key:
-            raise ValueError("USAJOBS User-Agent and Auth-Key cannot be empty.")
+        if not auth_key: # <-- MODIFIED: Only the auth_key is strictly required now
+            raise ValueError("USAJOBS Auth-Key cannot be empty.")
 
         self.auth_headers = {
             'Host': self.api_host,
-            'User-Agent': user_agent,
+            'User-Agent': user_agent, # Use the generic agent
             'Authorization-Key': auth_key
         }
         self.public_headers = {
             'Host': self.api_host,
-            'User-Agent': user_agent
+            'User-Agent': user_agent # Use the generic agent
         }
         logging.info("USAJobsHarvester initialized.")
 

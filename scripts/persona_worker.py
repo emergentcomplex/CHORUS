@@ -9,10 +9,10 @@
 import json
 import os
 import time
-import hashlib
 import traceback
 import re
 import socket
+import uuid
 import logging
 from pathlib import Path
 
@@ -363,7 +363,7 @@ def update_task_failure(query_hash: str, error_message: str, worker_id: str):
         conn.close()
 
 def main():
-    worker_id = f"persona-{socket.gethostname()}-{os.getpid()}"
+    worker_id = f"persona-{uuid.uuid4().hex[:12]}"
     logging.basicConfig(level=logging.INFO, format=f'%(asctime)s - %(levelname)s - [{worker_id}] - %(message)s')
     logging.info("Persona worker process started. Searching for analysis tasks...")
     while True:

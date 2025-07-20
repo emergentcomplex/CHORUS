@@ -1,15 +1,14 @@
-# Filename: scripts/harvester_worker.py
+# Filename: scripts/harvester_worker.py (Definitive)
 #
 # 🔱 CHORUS Autonomous OSINT Engine
 #
-# The main worker process for executing data harvesting tasks.
-# This version is upgraded to handle 'arxiv_search' tasks.
+# Definitive version with anonymous worker IDs and correct logging configuration.
 
 import argparse
 import json
 import logging
+import uuid
 import os
-import socket
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -18,11 +17,11 @@ from db_connector import get_db_connection
 from usajobs_harvester import USAJobsHarvester
 from usaspending_harvester import USASpendingHarvester
 from newsapi_harvester import NewsAPIHarvester
-from arxiv_harvester import ArxivHarvester # <-- IMPORT THE FINAL HARVESTER
+from arxiv_harvester import ArxivHarvester
 
 # --- CONFIGURATION ---
 DATA_LAKE_DIR = Path(__file__).resolve().parent.parent / 'datalake'
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - [HarvesterWorker] - %(message)s')
+# We will configure logging inside main()
 
 def update_task_status(task_id, status, worker_id=None):
     """Updates the status of a task in the database."""
@@ -44,11 +43,25 @@ def update_task_status(task_id, status, worker_id=None):
         conn.close()
 
 def main(task_id):
-    worker_id = f"harvester-{socket.gethostname()}-{os.getpid()}"
+    # --- THE DEFINITIVE FIX ---
+    # 1. Generate the anonymous worker ID first.
+    worker_id = f"harvester-{uuid.uuid4().hex[:12]}"
+    
+    # 2. Configure the root logger ONCE with the dynamic worker_id.
+    #    force=True ensures that if it was configured before, we can override it.
+    logging.basicConfig(
+        level=logging.INFO,
+        format=f'%(asctime)s - %(levelname)s - [{worker_id}] - %(message)s',
+        force=True
+    )
+    # --- END FIX ---
+
     logging.info(f"Worker started for task_id: {task_id}")
 
     conn = get_db_connection()
-    if not conn: return
+    if not conn:
+        logging.error("Could not connect to the database. Aborting.")
+        return
 
     task = None
     try:
@@ -70,11 +83,11 @@ def main(task_id):
         
         result_list = []
         
-        # --- ROUTING LOGIC ---
+        # --- ROUTING LOGIC (Unchanged) ---
         if script_name == 'usajobs_live_search':
-            user_agent = os.getenv("USAJOBS_EMAIL")
             auth_key = os.getenv("USAJOBS_API_KEY")
-            harvester = USAJobsHarvester(user_agent=user_agent, auth_key=auth_key)
+            # Use the new, more secure harvester init
+            harvester = USAJobsHarvester(auth_key=auth_key)
             results = list(harvester.get_live_jobs(search_params=params))
             result_list = [r.model_dump() for r in results]
 
@@ -94,22 +107,19 @@ def main(task_id):
             results = list(harvester.search_articles(search_params))
             result_list = [r.model_dump() for r in results]
 
-        # --- NEW HANDLER FOR ARXIV ---
         elif script_name == 'arxiv_search':
             harvester = ArxivHarvester()
-            query = params.get('Keyword') # Personas will pass the query string in 'Keyword'
+            query = params.get('Keyword')
             if not query: raise ValueError("'Keyword' not found in parameters for arxiv_search")
-            
             results = list(harvester.search_articles(search_query=query))
             result_list = [r.model_dump() for r in results]
 
         else:
             raise NotImplementedError(f"No handler implemented for script: {script_name}")
 
-        # --- Save results to Data Lake ---
+        # --- Save results to Data Lake (Unchanged) ---
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         keyword_str = params.get('Keyword', 'no_keyword').replace(' ', '_').replace('"', '')
-        # Sanitize filename further
         keyword_str = "".join(c for c in keyword_str if c.isalnum() or c in ('_')).rstrip()
         
         filename = f"{script_name}_{keyword_str[:50]}_{timestamp}.json"

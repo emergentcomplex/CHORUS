@@ -119,7 +119,8 @@ CHORUS is designed to be run on a Debian-based Linux system.
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y python3-pip python3-venv mariadb-server git pandoc texlive-xetex```
+sudo apt-get install -y python3-pip python3-venv mariadb-server git pandoc texlive-xetex
+```
 
 ### 2. Clone, Configure, and Install
 ```bash

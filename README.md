@@ -10,21 +10,22 @@
 
 The system was born from a simple observation: when a government research program proves its worth, it doesn't die—it "graduates" into the classified world, leaving behind a faint echo in the public record. CHORUS is designed to detect these echoes by correlating the silence in one dataset with the sudden chatter in others. It connects the dots between a DARPA program going dark, a surge in contract awards to a specific company, a spike in demand for cleared engineers with unique skills, and the global conversation surrounding a new technology.
 
-By simulating the adversarial, multi-perspective analysis of a real-world intelligence agency, CHORUS moves beyond data retrieval into the realm of automated strategic judgment.
+By simulating the structured, multi-layered, and adversarial analysis of a real-world intelligence agency, CHORUS moves beyond data retrieval into the realm of automated strategic judgment.
 
 ## Core Features
 
 -   **Autonomous & Self-Healing:** Built on a service-oriented architecture with `systemd`-managed daemons, the system runs 24/7, survives reboots, and automatically manages its own data collection and analysis queues.
--   **Evolving Data Lake:** A "fire-and-forget" **Sentinel** process periodically and intelligently refreshes all seven data sources, ensuring the system's knowledge is never stale.
--   **Multi-Source Fusion:** Ingests and correlates data from seven distinct verticals:
+-   **Evolving Data Lake:** A **Sentinel** daemon perpetually and intelligently refreshes a multi-source data lake, ensuring the system's knowledge is never stale.
+-   **Multi-Source Fusion:** Ingests and correlates data from our core verticals:
     1.  **DARPA Budgets:** The primary signal for strategic intent.
     2.  **USAspending.gov:** The money trail to corporate contractors.
-    3.  **Job Postings:** The human capital trail for specialized skills.
-    4.  **GovInfo (CRS/USCODE):** The foundational legal and policy context.
-    5.  **arXiv.org:** The bleeding edge of academic and scientific research.
-    6.  **NewsAPI:** The commercial and financial signal from private industry.
-    7.  **GDELT:** The global narrative from worldwide news media.
--   **Adversarial AI Council:** A "Chorus" of 16 different AI analysts and 4 directors debate and challenge findings, preventing groupthink and ensuring intellectual rigor.
+    3.  **USAJOBS:** The human capital trail for specialized skills.
+    4.  **arXiv.org:** The bleeding edge of academic and scientific research.
+    5.  **NewsAPI:** The commercial and financial signal from private industry.
+-   **The Triumvirate Council:** The analytical heart of CHORUS. A three-tiered council of AI personas debates and challenges findings to prevent groupthink and ensure intellectual rigor:
+    *   **Tier 1: The Analysts (The Virtuosos):** 16 specialist personas, each with a unique worldview, perform the initial deep-dive analysis.
+    *   **Tier 2: The Directors (The Section Leaders):** 4 director personas synthesize the competing findings of their assigned Analyst teams.
+    *   **Tier 3: The Judge (The Conductor):** A single, final arbiter synthesizes the competing directorate summaries into the definitive CHORUS report.
 -   **Verifiable Attribution:** Every claim in the final report is linked to its source with clickable citations, ensuring academic-grade verifiability.
 -   **Dual-Format Export:** Generate final intelligence products as either a portable static HTML website or a professional, archival-quality PDF.
 -   **Living Documentation:** The entire system is self-documenting, with a live documentation website generated directly from the codebase.
@@ -48,7 +49,7 @@ graph TD
 
     subgraph "Autonomous Analysis"
         F[CHORUS Launcher Daemon] --> G{Analysis DB Queue};
-        G --> H[Persona Workers];
+        G --> H[Director & Persona Workers];
         H --> J[Final Report];
     end
 
@@ -58,7 +59,7 @@ graph TD
     end
 
     E -- "RAG" --> H;
-    J -- "AI-Generated Keywords" --> B;
+    J -- "Recursive Inquiry" --> B;
 
     style A fill:#083344,stroke:#0e7490,color:#fff
     style F fill:#083344,stroke:#0e7490,color:#fff
@@ -66,165 +67,129 @@ graph TD
     style E fill:#431407,stroke:#e11d48,color:#fff
 ```
 
-### The Evolving Data Lake
+### The Triumvirate Council Workflow
 
-The Sentinel daemon is responsible for populating and maintaining a diverse, seven-source data lake. It runs specific scrapers on a schedule, ensuring the data is never stale. This provides the rich, multi-vertical context required for high-fidelity analysis.
-
-```mermaid
-graph LR
-    subgraph "Data Sources"
-        S1[DARPA Budgets];
-        S2[USAspending.gov];
-        S3[Job Postings];
-        S4[GovInfo];
-        S5[arXiv.org];
-        S6[NewsAPI];
-        S7[GDELT];
-    end
-
-    subgraph "Harvesting Engine"
-        Sentinel[CHORUS Sentinel] --> W1[scrape_contracts.py];
-        Sentinel --> W2[scrape_news.py];
-        Sentinel --> W3[...etc];
-    end
-    
-    subgraph "Storage"
-        DL((Central Data Lake));
-    end
-
-    W1 --> DL;
-    W2 --> DL;
-    W3 --> DL;
-```
-
-### The Adversarial AI Council
-
-This is the analytical heart of CHORUS. Instead of a single AI, a multi-tier "Council of Personas" processes information. This structured, adversarial workflow ensures conclusions are rigorously tested from multiple viewpoints before being finalized, complete with verifiable, clickable source citations.
+This is the analytical heart of CHORUS. A user query triggers a hierarchical cascade of analysis, ensuring conclusions are rigorously tested from multiple, competing viewpoints before being finalized.
 
 ```mermaid
 graph TD
-    subgraph "The Adversarial AI Council"
-        A[User Query] --> B{"Tier 1: Planning<br>(Chief of Staff)"};
-        B --> C{"Tier 2: Analysis<br>(16 Analyst Personas)"};
-        C -- RAG --> D((Data Lake));
-        C --> E{"Tier 3: Synthesis<br>(4 Director Personas)"};
-        E --> F{"Tier 4: Challenge<br>(Devil's Advocate)"};
-        F -- "Critique" --> E;
-        E -- "Revised Drafts" --> G{"Tier 5: Production<br>(Editor-in-Chief)"};
-        G --> H["Final Report<br>(HTML / PDF)"];
+    subgraph "The Triumvirate Council"
+        A[User Query] --> B{Tier 3: Judge Task};
+        B --> C1{Tier 2: Director Task A};
+        B --> C2{Tier 2: Director Task B};
+        B --> C3{...};
+
+        C1 --> D1{Tier 1: Analyst Task 1};
+        C1 --> D2{Tier 1: Analyst Task 2};
+        C1 --> D3{...};
+
+        D1 -- RAG --> E((Data Lake));
+        D2 -- RAG --> E;
+
+        D1 --> R1[Analyst Brief 1];
+        D2 --> R2[Analyst Brief 2];
+
+        R1 --> C1;
+        R2 --> C1;
+
+        C1 --> S1[Directorate Summary A];
+        C2 --> S2[Directorate Summary B];
+
+        S1 --> B;
+        S2 --> B;
+
+        B --> F["Final CHORUS Report<br>(HTML / PDF)"];
     end
     
-    style D fill:#431407,stroke:#e11d48,color:#fff
+    style E fill:#431407,stroke:#e11d48,color:#fff
 ```
 
 ---
 ## Setup & Installation
 
+*(This section remains largely the same, but with updated script names and a clearer flow)*
+
 CHORUS is designed to be run on a Debian-based Linux system.
 
 ### 1. Prerequisites
-- Python 3.10+
+- Python 3.11+ (for modern asyncio features)
 - MariaDB (or MySQL)
 - `git`
-- `pandoc`
-- **A LaTeX Distribution (for PDF export)**
+- `pandoc` & A LaTeX Distribution (for PDF export)
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y python3-pip python3-venv mariadb-server git pandoc texlive-xetex
-```
+sudo apt-get install -y python3-pip python3-venv mariadb-server git pandoc texlive-xetex```
 
-### 2. Clone the Repository
+### 2. Clone, Configure, and Install
 ```bash
 git clone <your-repo-url>
-cd Chorus
-```
-
-### 3. Create and Activate Virtual Environment
-This project requires a Python virtual environment to ensure dependencies do not conflict with your system's Python installation.
-```bash
-# Create the virtual environment
+cd CHORUS
 python3 -m venv venv
-
-# Activate it (you must do this every time you open a new terminal to work on the project)
 source venv/bin/activate
-```
-
-### 4. Install Dependencies
-Once your virtual environment is active, install the required packages.
-```bash
 pip install -r requirements.txt
-```
-
-### 5. Configure the Environment
-Copy the example configuration file and fill in your credentials. **The `.env` file is ignored by Git and will not be committed.**
-```bash
 cp .env.example .env
-nano .env
+nano .env # <-- Add your API keys and DB credentials
 ```
-You will need to get free API keys from:
-- [Google AI Studio](https://aistudio.google.com/app/apikey)
-- [NewsAPI.org](https://newsapi.org/)
-- [GovInfo API](https://api.govinfo.gov/)
 
-### 6. Set Up the Database
-Log into MariaDB and create the database and user specified in your `.env` file.
+### 3. Set Up the Database
+Log into MariaDB to create the database and user from your `.env` file.
 ```sql
 -- Example Commands:
-CREATE DATABASE chorus_analysis;
-CREATE USER 'chorus_user'@'localhost' IDENTIFIED BY 'your_secure_db_password';
-GRANT ALL PRIVILEGES ON chorus_analysis.* TO 'chorus_user'@'localhost';
+CREATE DATABASE chorus_db;
+CREATE USER 'chorus_user'@'localhost' IDENTIFIED BY 'your_secure_password';
+GRANT ALL PRIVILEGES ON chorus_db.* TO 'chorus_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
-Then, run the schema creation script:
+Then, run the schema and persona creation scripts:
 ```bash
-mysql -u $(grep DB_USER .env | cut -d '=' -f2) -p $(grep DB_PASSWORD .env | cut -d '=' -f2) $(grep DB_NAME .env | cut -d '=' -f2) < scripts/schema.sql
+# From the 'scripts' directory
+mysql -u $(grep DB_USER ../.env | cut -d '=' -f2) -p$(grep DB_PASSWORD ../.env | cut -d '=' -f2) $(grep DB_NAME ../.env | cut -d '=' -f2) < schema.sql
+mysql -u $(grep DB_USER ../.env | cut -d '=' -f2) -p$(grep DB_PASSWORD ../.env | cut -d '=' -f2) $(grep DB_NAME ../.env | cut -d '=' -f2) < populate_personas.sql
 ```
 
-### 7. The Data-First Build Process
+### 4. The Data-First Build Process
 
 **Step A: The DARPA Ingestion (One-Time)**
 - Place your raw DARPA `.txt` files into the `data/darpa/` directory.
-- Run the ingestion pipeline:
+- Run the full ingestion and vectorization pipeline:
 ```bash
-cd scripts
-python ingest_1_dictionaries.py
-python ingest_2_encode.py
-python ingest_3_generate_dsv.py
+# From the 'scripts' directory
+python3 ingest_1_map_dictionaries.py
+python3 ingest_2_reduce_and_create_dsv_header.py
+python3 ingest_3_generate_dsv_data.py
+python3 ingest_4_populate_vectordb.py --source DARPA
+python3 ingest_5_factor_dsv.py
 ```
 
-**Step B: Launch the Autonomous Harvester**
-- Populate the harvesting queue:
+**Step B: Download the Embedding Model (One-Time)**
 ```bash
-python populate_harvest_tasks.py
+# From the 'scripts' directory
+python3 download_embedding_model.py
 ```
-- Deploy the Sentinel daemon as a `systemd` service. This will begin collecting all other data sources in the background.
 
-**Step C: Launch the Analysis Engine**
-- Populate the personas table:
+**Step C: Populate and Launch the Autonomous Harvester**
+- Populate the harvesting queue with our core data sources:
 ```bash
-mysql -u $(grep DB_USER .env | cut -d '=' -f2) -p $(grep DB_PASSWORD .env | cut -d '=' -f2) $(grep DB_NAME .env | cut -d '=' -f2) < scripts/populate_personas.sql
+# From the 'scripts' directory
+python3 populate_harvest_tasks.py
 ```
-- Deploy the main CHORUS launcher as a `systemd` service.
+- Deploy the Sentinel daemon (e.g., using `systemd` or `screen`). This will begin collecting all other data sources in the background.
+  `python3 trident_sentinel.py`
 
-### 8. Launch the C2 Dashboard & Documentation
+**Step D: Launch the Analysis Engine**
+- Deploy the main CHORUS launcher daemon.
+  `python3 trident_launcher.py`
+
+### 5. Launch the C2 Dashboard & Documentation
 
 - **To run the main application UI:**
-  ```bash
-  # From the scripts/ directory
-  python web_ui.py
-  ```
-  Navigate to `http://127.0.0.1:5001`.
-
+  `python3 web_ui.py` (from the project root)
 - **To view the live code documentation:**
-  ```bash
-  # From the scripts/ directory
-  python generate_and_serve_docs.py
-  ```
-  Navigate to `http://localhost:8001`.
+  `python3 scripts/generate_and_serve_docs.py` (from the project root)
 
 ## My Findings
 *(This section is for you to document the most compelling insights your CHORUS engine discovers.)*
 
 **Example Finding:**
-> By correlating a spike in DARPA funding for "Program X" in FY22 with a cluster of contract awards to "Company Y" in Q3 FY22 and a subsequent surge in job postings from Company Y for "RF engineers with TS/SCI clearances" in Q4 FY22, CHORUS assesses with high confidence that Program X involves the development of a new, classified radio-frequency satellite communication system. This was corroborated by a GDELT analysis showing increased discussion of satellite communications in Chinese state media during the same period.
+> By synthesizing four competing analytical viewpoints, CHORUS assesses with high confidence that "Program X" has transitioned from R&D to an operational capability. The **Hawk** analyst highlighted a surge in contracts to "Company Y," while the **Dove** analyst noted a simultaneous drop in international academic collaboration. The **Fiscal Conservative** flagged the program's budget shifting from R&D to Procurement funds, and the **Techno-Optimist** identified a spike in hiring for "RF engineers with TS/SCI clearances" at Company Y. The Director synthesized these signals to conclude the program involves a new, classified radio-frequency satellite system, a judgment that would have been impossible from any single data stream alone.

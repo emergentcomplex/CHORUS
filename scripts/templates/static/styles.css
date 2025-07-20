@@ -1,0 +1,6 @@
+/* A simple placeholder stylesheet. You can expand this. */
+body {
+    /* Example: Add a subtle background pattern */
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+    background-size: 20px 20px;
+}

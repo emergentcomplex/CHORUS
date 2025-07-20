@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHORUS C2</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* A simple placeholder stylesheet. You can expand this. */
+        body {
+            background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+        /* For styling the generated report content */
+        .prose h1, .prose h2, .prose h3 {
+            color: #93c5fd; /* blue-300 */
+            border-bottom: 1px solid #374151; /* gray-700 */
+            padding-bottom: 0.3em;
+        }
+        .prose a {
+            color: #67e8f9; /* cyan-300 */
+        }
+        .prose blockquote {
+            border-left-color: #374151; /* gray-700 */
+            color: #d1d5db; /* gray-300 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 font-sans">
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-cyan-400">🔱 CHORUS C2</h1>
+            <p class="text-gray-400">Autonomous Intelligence Dashboard</p>
+        </header>
+        <main>
+            {# This is the single, unique block where child templates will inject their content #}
+            {% block content %}{% endblock %}
+        </main>
+        <footer class="text-center mt-12 text-xs text-gray-600">
+            <p>CHORUS Engine v1.0 - Autonomous Operations</p>
+        </footer>
+    </div>
+</body>
+</html>

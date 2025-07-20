@@ -1,0 +1,62 @@
+html
+<!-- Filename: scripts/templates/partials/report_content.html (v2.1) -->
+<!-- Professional Aesthetics with Tailwind Typography -->
+
+<div class="space-y-4">
+    <div>
+        <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-2">Analysis Log</h3>
+        <div class="mt-2 text-sm text-gray-400 font-mono space-y-1">
+            {% for update in progress_updates %}
+                <p><span class="text-gray-500">{{ update.timestamp.strftime('%H:%M:%S') }} ></span> {{ update.status_message }}</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div>
+        <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-2">Final Report</h3>
+        
+        {% if report_data %}
+            {% if report_data.error %}
+                <!-- Display Controlled Errors -->
+                <div class="mt-4 p-4 bg-red-900 border border-red-700 rounded-md text-red-200">
+                    <h4 class="font-bold">Analysis Failed</h4>
+                    <p class="font-mono mt-2">{{ report_data.error }}</p>
+                </div>
+            {% else %}
+                <!-- THE DEFINITIVE AESTHETIC UPGRADE -->
+                <div class="mt-4 p-6 bg-gray-800 border border-gray-700 rounded-md text-gray-300 space-y-8">
+                    
+                    <!-- Narrative Analysis Section -->
+                    <div>
+                        <h4 class="text-xl font-bold text-cyan-400 tracking-wider">[NARRATIVE ANALYSIS]</h4>
+                        <!-- The 'prose' classes automatically style the HTML rendered from Markdown -->
+                        <div class="prose prose-invert mt-4 max-w-none prose-p:text-gray-300 prose-headings:text-gray-100">
+                            {{ report_data.narrative_analysis_html | safe }}
+                        </div>
+                    </div>
+
+                    <!-- Argument Map Section -->
+                    <div>
+                        <h4 class="text-xl font-bold text-cyan-400 tracking-wider">[ARGUMENT MAP]</h4>
+                        <div class="prose prose-invert mt-4 max-w-none prose-ul:list-disc prose-li:text-gray-300">
+                            {{ report_data.argument_map_html | safe }}
+                        </div>
+                    </div>
+
+                    <!-- Intelligence Gaps Section -->
+                    <div>
+                        <h4 class="text-xl font-bold text-cyan-400 tracking-wider">[INTELLIGENCE GAPS]</h4>
+                        <div class="prose prose-invert mt-4 max-w-none prose-ol:list-decimal prose-li:text-gray-300">
+                            {{ report_data.intelligence_gaps_html | safe }}
+                        </div>
+                    </div>
+
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="mt-4 text-gray-500">
+                Analysis in progress. This panel will automatically update when the report is ready.
+            </div>
+        {% endif %}
+    </div>
+</div>

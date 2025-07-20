@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# CHORUS Specific
+data/
+datalake/
+docs/
+exports/
+models/
+scripts/ai_generated_keywords.json
+scripts/experiment_results/
+scripts/query_state/
+scripts/diagnostics/
+
+# Logs & Artifacts
+*.log
+*.txt
+*.json
+*.xml
+*.pdf
+*.gz
+
+# Credentials - CRITICAL
+gcp_credentials.json
+*.pem
+
+# OS / Editor specific
+.DS_Store
+.vscode/

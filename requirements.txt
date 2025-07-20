@@ -1,6 +1,5 @@
 # Filename: requirements.txt
-google-generativeai
-mysql-connector-python
+google-genai
 flask
 htmx-flask
 tqdm
@@ -15,3 +14,16 @@ pytest
 python-dotenv
 PyPDF2
 pdoc
+beautifulsoup4
+lxml
+watchdog
+psutil
+openai
+xai-sdk
+mariadb
+google-cloud-bigquery
+google-auth
+pandas
+db-dtypes
+dotenv
+pydantic

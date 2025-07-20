@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6 border border-gray-700">
+    <div class="flex justify-between items-center">
+        <div>
+            <a href="/" class="text-cyan-400 hover:underline">← Back to Dashboard</a>
+            <h2 class="text-3xl mt-2 font-semibold text-gray-200">Analysis Session</h2>
+            <p class="text-gray-400 font-mono text-sm">Session ID: {{ query_hash }}</p>
+        </div>
+        <div class="flex items-center space-x-4">
+            <!-- The export buttons are now simplified and will be fully functional -->
+            <form action="{{ url_for('export_report_pdf', query_hash=query_hash) }}" method="post"><button type="submit" class="bg-purple-800 hover:bg-purple-900 text-white font-bold py-2 px-4 rounded-lg">Export PDF</button></form>
+        </div>
+    </div>
+</div>
+
+<!-- This div will now auto-update every 3 seconds to show progress and the final report -->
+<div id="report-container" 
+     hx-get="{{ url_for('update_report', query_hash=query_hash) }}" 
+     hx-trigger="load, every 3s" 
+     hx-swap="innerHTML">
+    <p class="text-center text-gray-400">Loading analysis progress...</p>
+</div>
+{% endblock %}

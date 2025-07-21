@@ -23,6 +23,7 @@ _Last Updated: 2025-07-19_
 _This section codifies all 18 inviolable principles. All code and architectural decisions MUST adhere to these axioms to prevent regression._
 
 **I. Foundational Axioms (The Bedrock)**
+
 1.  **Axiom of Mission Alignment:** The CHORUS platform overview is our guiding north star. Every feature must serve the core mission of detecting echoes of classified programs by starting with DARPA as the primary signal and dynamically tasking other OSINT verticals for fusion.
 2.  **Axiom of Model Standardization:** All generative tasks will exclusively use the **`gemini-2.5-pro`** model to ensure consistency and comparability of outputs.
 3.  **Axiom of Deterministic Parsing:** The AI's role is reasoning and generating clearly delineated plain text. Our Python code is solely responsible for parsing this text into reliable, guaranteed-valid data structures. We **never** instruct the LLM to return JSON.
@@ -30,6 +31,7 @@ _This section codifies all 18 inviolable principles. All code and architectural 
 5.  **Axiom of Atomic Implementation:** All code provided must be a **complete, drop-in replacement** for the file it modifies. We do not work with partial snippets or diffs.
 
 **II. Architectural Axioms (The Structure)**
+
 6.  **Axiom of Adversarial Analysis:** The system's final judgment must emerge from the structured, parallel debate between multiple, competing AI personas. This is the core mechanism for preventing single-model bias and ensuring intellectual rigor.
 7.  **Axiom of Hierarchical Synthesis:** Analysis is a multi-tiered process (Analyst -> Director -> Judge), with each tier adding a layer of abstraction and judgment.
 8.  **Axiom of Persona-Driven Collection:** Data collection is not monolithic. Each Analyst persona is responsible for generating its **own** dynamic Collection Plan based on its unique worldview. Data gathering is an integral and biased part of the analysis itself, not a neutral preliminary step.
@@ -37,12 +39,14 @@ _This section codifies all 18 inviolable principles. All code and architectural 
 10. **Axiom of Pragmatic Harvesting:** A harvester's goal is to acquire a high-quality *signal*, not to exhaustively mirror a data source. All harvesting functions must have a configurable `max_results` limit to prevent unbounded collection.
 
 **III. Verifiability & Quality Axioms (The Product)**
+
 11. **Axiom of Atomic Attribution:** Every piece of information retrieved from an external tool must be atomically captured with its source (URL) and snippet, stored in the database, and made available for citation in the final report.
 12. **Axiom of Report Conciseness:** Foundational internal data sources (like the DARPA budget database) are to be referenced once in a summary statement, not repeatedly cited.
 13. **Axiom of the Contrarian (The Red Team):** At least one persona in any analysis must be tasked with constructing the most plausible, evidence-based *alternative* hypothesis to the primary query, ensuring we test for deception and "black swan" events.
 14. **Axiom of Quantified Confidence:** All analytical conclusions from Analysts, Directors, and the Judge must be accompanied by a numerical confidence score to add precision and force rigorous self-assessment.
 
 **IV. Strategic & Learning Axioms (The Vision)**
+
 15. **Axiom of the Analytical Triumvirate:** The council is a three-tiered hierarchy: 16 Analysts, 4 Directors, and 1 final Judge.
 16. **Axiom of Persona-Specialization:** Analysts are specialists in both a data vertical and a worldview.
 17. **Axiom of Historical Precedent:** The Judge is compelled to ask, "Has a similar pattern of signals been observed before in history?" to add strategic depth.
@@ -59,7 +63,9 @@ _This section describes the hierarchical structure of the analytical engine._
 *   **Tier 2: The Directors (The Section Leaders):** 4 director personas who synthesize the findings of their assigned 4-Analyst teams. They are the "debaters," responsible for resolving conflicts and creating a balanced directorate-level judgment.
 *   **Tier 3: The Judge (The Conductor):** A single, final arbiter that synthesizes the competing directorate summaries into the definitive CHORUS report. It is the "decider," uniquely tasked with taking a long-term strategic view.
 
-### 3.2. Architectural Diagram (The Full Symphony)```mermaid
+### 3.2. Architectural Diagram (The Full Symphony)
+
+```mermaid
 graph TD
     subgraph "CHORUS Engine"
         A[User Query] --> J{Judge Task};
@@ -88,6 +94,7 @@ graph TD
         DS1 & DS2 & DS3 --> J;
         J --> FCR[Final CHORUS Report];
     end
+
 ```
 
 ---

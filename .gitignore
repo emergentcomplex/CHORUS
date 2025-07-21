@@ -7,7 +7,6 @@ venv/
 # CHORUS Specific
 data/
 datalake/
-docs/
 exports/
 models/
 scripts/ai_generated_keywords.json

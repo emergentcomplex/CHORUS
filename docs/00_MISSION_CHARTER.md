@@ -1,196 +1,186 @@
-# 🔱 CHORUS: Listening to the Silence Between the Signals
+# 🔱 The CHORUS Constitution & Architectural Blueprint
+_Document Version: 2.0 (Phase 2 - The Chamber Orchestra)_
+_Last Updated: 2025-07-19_
 
-> ✨ *The loudest secrets are kept in silence. We built an engine that listens.* ✨
+---
+
+## Part 1: The Guiding North Star (The Mission)
+
+> ✨ The loudest secrets are kept in silence. ✨
+> 
+> We believe that silence is not an absence of data, but a signal in itself. A budget line vanishes into shadow. A job posting for a cleared physicist appears like a flare in the night. A cluster of obscure academic papers creates a new hum in the noise.
+> 
+> Our engine, CHORUS, is an observatory for these echoes. It listens to the resonance left behind when a secret program graduates from the public record, fusing the void in one dataset with the crescendo in another.
+> 
+> It is not a monolith; it is a symphony of judgment. An adversarial council of AI virtuosos—Hawks, Doves, Futurists, and Skeptics—each performing their own analysis, their competing melodies forged by synthesizing Directors into a single, coherent revelation.
+> 
+> We do not ask for an answer. We demand a verdict, complete with every source and every dissenting note, allowing you to see the work and trust the judgment.
 
 ---
 
-## Overview
+## Part 2: The Axioms of CHORUS Development
 
-**CHORUS** is not a search engine; it is a judgment engine. It is a fully autonomous, self-healing, and evolving intelligence platform designed to fuse disparate, open-source data verticals into high-fidelity, actionable insights.
+_This section codifies all 18 inviolable principles. All code and architectural decisions MUST adhere to these axioms to prevent regression._
 
-The system was born from a simple observation: when a government research program proves its worth, it doesn't die—it "graduates" into the classified world, leaving behind a faint echo in the public record. CHORUS is designed to detect these echoes by correlating the silence in one dataset with the sudden chatter in others. It connects the dots between a DARPA program going dark, a surge in contract awards to a specific company, a spike in demand for cleared engineers with unique skills, and the global conversation surrounding a new technology.
+**I. Foundational Axioms (The Bedrock)**
 
-By simulating the structured, multi-layered, and adversarial analysis of a real-world intelligence agency, CHORUS moves beyond data retrieval into the realm of automated strategic judgment.
+1.  **Axiom of Mission Alignment:** The CHORUS platform overview is our guiding north star. Every feature must serve the core mission of detecting echoes of classified programs by starting with DARPA as the primary signal and dynamically tasking other OSINT verticals for fusion.
+2.  **Axiom of Model Standardization:** All generative tasks will exclusively use the **`gemini-2.5-pro`** model to ensure consistency and comparability of outputs.
+3.  **Axiom of Deterministic Parsing:** The AI's role is reasoning and generating clearly delineated plain text. Our Python code is solely responsible for parsing this text into reliable, guaranteed-valid data structures. We **never** instruct the LLM to return JSON.
+4.  **Axiom of Schema-First Development:** The database schema is the ground truth. All code that interacts with the database must conform precisely to the established table structures, column names, and data types.
+5.  **Axiom of Atomic Implementation:** All code provided must be a **complete, drop-in replacement** for the file it modifies. We do not work with partial snippets or diffs.
 
-## Core Features
+**II. Architectural Axioms (The Structure)**
 
--   **Autonomous & Self-Healing:** Built on a service-oriented architecture with `systemd`-managed daemons, the system runs 24/7, survives reboots, and automatically manages its own data collection and analysis queues.
--   **Evolving Data Lake:** A **Sentinel** daemon perpetually and intelligently refreshes a multi-source data lake, ensuring the system's knowledge is never stale.
--   **Multi-Source Fusion:** Ingests and correlates data from our core verticals:
-    1.  **DARPA Budgets:** The primary signal for strategic intent.
-    2.  **USAspending.gov:** The money trail to corporate contractors.
-    3.  **USAJOBS:** The human capital trail for specialized skills.
-    4.  **arXiv.org:** The bleeding edge of academic and scientific research.
-    5.  **NewsAPI:** The commercial and financial signal from private industry.
--   **The Triumvirate Council:** The analytical heart of CHORUS. A three-tiered council of AI personas debates and challenges findings to prevent groupthink and ensure intellectual rigor:
-    *   **Tier 1: The Analysts (The Virtuosos):** 16 specialist personas, each with a unique worldview, perform the initial deep-dive analysis.
-    *   **Tier 2: The Directors (The Section Leaders):** 4 director personas synthesize the competing findings of their assigned Analyst teams.
-    *   **Tier 3: The Judge (The Conductor):** A single, final arbiter synthesizes the competing directorate summaries into the definitive CHORUS report.
--   **Verifiable Attribution:** Every claim in the final report is linked to its source with clickable citations, ensuring academic-grade verifiability.
--   **Dual-Format Export:** Generate final intelligence products as either a portable static HTML website or a professional, archival-quality PDF.
--   **Living Documentation:** The entire system is self-documenting, with a live documentation website generated directly from the codebase.
+6.  **Axiom of Adversarial Analysis:** The system's final judgment must emerge from the structured, parallel debate between multiple, competing AI personas. This is the core mechanism for preventing single-model bias and ensuring intellectual rigor.
+7.  **Axiom of Hierarchical Synthesis:** Analysis is a multi-tiered process (Analyst -> Director -> Judge), with each tier adding a layer of abstraction and judgment.
+8.  **Axiom of Persona-Driven Collection:** Data collection is not monolithic. Each Analyst persona is responsible for generating its **own** dynamic Collection Plan based on its unique worldview. Data gathering is an integral and biased part of the analysis itself, not a neutral preliminary step.
+9.  **Axiom of Tool-Assisted Analysis:** Personas are not limited to static data. Both Analysts and Directors must have access to a defined set of external tools (e.g., Google Search) to enrich their analysis in real-time.
+10. **Axiom of Pragmatic Harvesting:** A harvester's goal is to acquire a high-quality *signal*, not to exhaustively mirror a data source. All harvesting functions must have a configurable `max_results` limit to prevent unbounded collection.
+
+**III. Verifiability & Quality Axioms (The Product)**
+
+11. **Axiom of Atomic Attribution:** Every piece of information retrieved from an external tool must be atomically captured with its source (URL) and snippet, stored in the database, and made available for citation in the final report.
+12. **Axiom of Report Conciseness:** Foundational internal data sources (like the DARPA budget database) are to be referenced once in a summary statement, not repeatedly cited.
+13. **Axiom of the Contrarian (The Red Team):** At least one persona in any analysis must be tasked with constructing the most plausible, evidence-based *alternative* hypothesis to the primary query, ensuring we test for deception and "black swan" events.
+14. **Axiom of Quantified Confidence:** All analytical conclusions from Analysts, Directors, and the Judge must be accompanied by a numerical confidence score to add precision and force rigorous self-assessment.
+
+**IV. Strategic & Learning Axioms (The Vision)**
+
+15. **Axiom of the Analytical Triumvirate:** The council is a three-tiered hierarchy: 16 Analysts, 4 Directors, and 1 final Judge.
+16. **Axiom of Persona-Specialization:** Analysts are specialists in both a data vertical and a worldview.
+17. **Axiom of Historical Precedent:** The Judge is compelled to ask, "Has a similar pattern of signals been observed before in history?" to add strategic depth.
+18. **Axiom of Recursive Inquiry:** The `intelligence_gaps` from a final report must be used to generate new, persistent, low-priority harvesting tasks, creating an autonomous feedback loop.
 
 ---
-## System Architecture
 
-CHORUS is a decoupled, service-oriented system composed of three primary components: the **Data Lake**, the **Analysis Core**, and the **Analyst Interface**. These components work in a continuous, self-sustaining loop.
+## Part 3: The Triumvirate Architecture
 
-### The CHORUS Ecosystem
+_This section describes the hierarchical structure of the analytical engine._
 
-This diagram illustrates the high-level interaction between the system's autonomous parts. The Sentinel perpetually harvests data, the Launcher perpetually analyzes it, and the Analyst commands the process through the C2 Dashboard, creating a virtuous cycle of intelligence.
+### 3.1. The Triumvirate Council
+*   **Tier 1: The Analysts (The Virtuosos):** 16 specialist personas who perform the initial deep-dive analysis. They are the "doers," each with deep expertise in a specific data vertical and a distinct worldview (e.g., a "Financial Signal Hawk").
+*   **Tier 2: The Directors (The Section Leaders):** 4 director personas who synthesize the findings of their assigned 4-Analyst teams. They are the "debaters," responsible for resolving conflicts and creating a balanced directorate-level judgment.
+*   **Tier 3: The Judge (The Conductor):** A single, final arbiter that synthesizes the competing directorate summaries into the definitive CHORUS report. It is the "decider," uniquely tasked with taking a long-term strategic view.
+
+### 3.2. Architectural Diagram (The Full Symphony)
 
 ```mermaid
 graph TD
-    subgraph "Autonomous Harvesting"
-        A[CHORUS Sentinel Daemon] --> B{Harvesting DB Queue};
-        B --> C[Harvester Workers];
-        C --> E((Data Lake));
+    subgraph "CHORUS Engine"
+        A[User Query] --> J{Judge Task};
+
+        subgraph "Directorate Alpha"
+            J --> D1{Director A};
+            D1 --> AN1(Analyst 1); D1 --> AN2(Analyst 2); D1 --> AN3(Analyst 3); D1 --> AN4(Analyst 4);
+            AN1 & AN2 & AN3 & AN4 --> R1((Analyst Briefs));
+            R1 --> D1;
+            D1 --> DS1[Directorate Summary A];
+        end
+
+        subgraph "Directorate Bravo"
+            J --> D2{Director B};
+            D2 --> AN5(Analyst 5); D2 --> AN6(Analyst 6); D2 --> AN7(Analyst 7); D2 --> AN8(Analyst 8);
+            AN5 & AN6 & AN7 & AN8 --> R2((Analyst Briefs));
+            R2 --> D2;
+            D2 --> DS2[Directorate Summary B];
+        end
+        
+        subgraph "Directorate Charlie & Delta"
+            J --> D3{...};
+            D3 --> DS3[...];
+        end
+
+        DS1 & DS2 & DS3 --> J;
+        J --> FCR[Final CHORUS Report];
     end
 
-    subgraph "Autonomous Analysis"
-        F[CHORUS Launcher Daemon] --> G{Analysis DB Queue};
-        G --> H[Director & Persona Workers];
-        H --> J[Final Report];
-    end
-
-    subgraph "Analyst Interface"
-        K[C2 Web Dashboard] --> G;
-        J --> K;
-    end
-
-    E -- "RAG" --> H;
-    J -- "Recursive Inquiry" --> B;
-
-    style A fill:#083344,stroke:#0e7490,color:#fff
-    style F fill:#083344,stroke:#0e7490,color:#fff
-    style K fill:#4a044e,stroke:#a21caf,color:#fff
-    style E fill:#431407,stroke:#e11d48,color:#fff
-```
-
-### The Triumvirate Council Workflow
-
-This is the analytical heart of CHORUS. A user query triggers a hierarchical cascade of analysis, ensuring conclusions are rigorously tested from multiple, competing viewpoints before being finalized.
-
-```mermaid
-graph TD
-    subgraph "The Triumvirate Council"
-        A[User Query] --> B{Tier 3: Judge Task};
-        B --> C1{Tier 2: Director Task A};
-        B --> C2{Tier 2: Director Task B};
-        B --> C3{...};
-
-        C1 --> D1{Tier 1: Analyst Task 1};
-        C1 --> D2{Tier 1: Analyst Task 2};
-        C1 --> D3{...};
-
-        D1 -- RAG --> E((Data Lake));
-        D2 -- RAG --> E;
-
-        D1 --> R1[Analyst Brief 1];
-        D2 --> R2[Analyst Brief 2];
-
-        R1 --> C1;
-        R2 --> C1;
-
-        C1 --> S1[Directorate Summary A];
-        C2 --> S2[Directorate Summary B];
-
-        S1 --> B;
-        S2 --> B;
-
-        B --> F["Final CHORUS Report<br>(HTML / PDF)"];
-    end
-    
-    style E fill:#431407,stroke:#e11d48,color:#fff
 ```
 
 ---
-## Setup & Installation
 
-*(This section remains largely the same, but with updated script names and a clearer flow)*
+## Part 4: The Phased Rollout Plan & Quality Targets
 
-CHORUS is designed to be run on a Debian-based Linux system.
+_This section defines the current phase of development and the quantitative goals for success._
 
-### 1. Prerequisites
-- Python 3.11+ (for modern asyncio features)
-- MariaDB (or MySQL)
-- `git`
-- `pandoc` & A LaTeX Distribution (for PDF export)
+### 4.1. Current Phase: Phase 2 - The Chamber Orchestra
+*   **Objective:** Prove that a Director, synthesizing four competing Analyst viewpoints, produces a superior report.
+*   **Baseline Score (from Phase 1):** 1767.5 / 3000 (Normalized: 58.9%)
+*   **Target Score (for Phase 2):** **2210 / 3000** (Normalized: ~74%)
 
-```bash
-sudo apt-get update
-sudo apt-get install -y python3-pip python3-venv mariadb-server git pandoc texlive-xetex
-```
+### 4.2. Future Phases
+*   **Phase 3: The Full Symphony:**
+    *   **Objective:** Prove that the final Judge, synthesizing four competing Directorate summaries, produces the definitive, highest-quality intelligence product.
+    *   **Baseline Score (from Phase 2):** 2210 / 3000
+    *   **Target Score (for Phase 3):** **2540 / 3000** (Normalized: ~85%)
 
-### 2. Clone, Configure, and Install
-```bash
-git clone <your-repo-url>
-cd CHORUS
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-nano .env # <-- Add your API keys and DB credentials
-```
+---
 
-### 3. Set Up the Database
-Log into MariaDB to create the database and user from your `.env` file.
-```sql
--- Example Commands:
-CREATE DATABASE chorus_db;
-CREATE USER 'chorus_user'@'localhost' IDENTIFIED BY 'your_secure_password';
-GRANT ALL PRIVILEGES ON chorus_db.* TO 'chorus_user'@'localhost';
-FLUSH PRIVILEGES;
-```
-Then, run the schema and persona creation scripts:
-```bash
-# From the 'scripts' directory
-mysql -u $(grep DB_USER ../.env | cut -d '=' -f2) -p$(grep DB_PASSWORD ../.env | cut -d '=' -f2) $(grep DB_NAME ../.env | cut -d '=' -f2) < schema.sql
-mysql -u $(grep DB_USER ../.env | cut -d '=' -f2) -p$(grep DB_PASSWORD ../.env | cut -d '=' -f2) $(grep DB_NAME ../.env | cut -d '=' -f2) < populate_personas.sql
-```
+## Part 5: Service-Level Objectives (SLOs)
 
-### 4. The Data-First Build Process
+This section defines the formal performance, reliability, and security contract for the system. All components must be tested against these standards. A failure to meet an SLO is considered a bug.
 
-**Step A: The DARPA Ingestion (One-Time)**
-- Place your raw DARPA `.txt` files into the `data/darpa/` directory.
-- Run the full ingestion and vectorization pipeline:
-```bash
-# From the 'scripts' directory
-python3 ingest_1_map_dictionaries.py
-python3 ingest_2_reduce_and_create_dsv_header.py
-python3 ingest_3_generate_dsv_data.py
-python3 ingest_4_populate_vectordb.py --source DARPA
-python3 ingest_5_factor_dsv.py
-```
+*   **SLO-H1 (Harvester Speed)**
 
-**Step B: Download the Embedding Model (One-Time)**
-```bash
-# From the 'scripts' directory
-python3 download_embedding_model.py
-```
+    **Objective**: Any single, dynamically generated harvesting task must complete its full execution—from process start to saving data in the Data Lake—in under 90 seconds.
 
-**Step C: Populate and Launch the Autonomous Harvester**
-- Populate the harvesting queue with our core data sources:
-```bash
-# From the 'scripts' directory
-python3 populate_harvest_tasks.py
-```
-- Deploy the Sentinel daemon (e.g., using `systemd` or `screen`). This will begin collecting all other data sources in the background.
-  `python3 trident_sentinel.py`
+    **Method of Measurement**: This will be measured by the harvester_worker.py script. The worker will record a start timestamp upon initialization and an end timestamp immediately before its final update_task_status('COMPLETED', ...) call. The duration will be logged. The trident_sentinel will be responsible for reaping any worker process that exceeds a 120-second hard timeout, marking its task as FAILED.
 
-**Step D: Launch the Analysis Engine**
-- Deploy the main CHORUS launcher daemon.
-  `python3 trident_launcher.py`
+    **Rationale**: This ensures that the data collection phase for any given signal remains responsive and does not become a bottleneck for the Analyst's workflow.
 
-### 5. Launch the C2 Dashboard & Documentation
+*   **SLO-H2 (Harvester Reliability**)
 
-- **To run the main application UI:**
-  `python3 web_ui.py` (from the project root)
-- **To view the live code documentation:**
-  `python3 scripts/generate_and_serve_docs.py` (from the project root)
+    **Objective**: Any individual harvester module (e.g., usaspending_harvester) must achieve a >98% success rate on valid, well-formed queries.
 
-## My Findings
-*(This section is for you to document the most compelling insights your CHORUS engine discovers.)*
+    **Method of Measurement**: This will be measured by our dedicated stress test scripts (e.g., stress_test_usaspending.py). The test will consist of at least 100 sequential, valid requests. A "success" is defined as a 200 OK HTTP status code. The test fails if the success rate drops below 98%.
 
-**Example Finding:**
-> By synthesizing four competing analytical viewpoints, CHORUS assesses with high confidence that "Program X" has transitioned from R&D to an operational capability. The **Hawk** analyst highlighted a surge in contracts to "Company Y," while the **Dove** analyst noted a simultaneous drop in international academic collaboration. The **Fiscal Conservative** flagged the program's budget shifting from R&D to Procurement funds, and the **Techno-Optimist** identified a spike in hiring for "RF engineers with TS/SCI clearances" at Company Y. The Director synthesized these signals to conclude the program involves a new, classified radio-frequency satellite system, a judgment that would have been impossible from any single data stream alone.
+    **Rationale**: This guarantees that our core data collection tools are robust and that failures are rare and exceptional, allowing our "Graceful Degradation" policy to be a last resort, not a common occurrence.
+
+*   **SLO-A1 (Analyst Speed)**
+
+    **Objective**: A single persona_worker (Analyst) must complete its full Plan -> Harvest -> Synthesize cycle in under 5 minutes (300 seconds) for a standard query.
+
+    **Method of Measurement**: This is measured by the trident_launcher.py daemon. The started_at and completed_at timestamps in the task_queue table for any Analyst-level task will be used to calculate the total duration. The launcher's check_and_reset_stale_tasks function will enforce a hard timeout of 10 minutes, as a safety measure.
+
+    **Rationale**: This ensures a timely response for the user. While deep analysis takes time, the core loop for a single Analyst must be efficient enough to enable the multi-persona "Chamber Orchestra" to complete its work in a reasonable timeframe (e.g., under 15-20 minutes).
+
+*  SLO-S1 (Security & Anonymity)
+
+    **Objective**: The system must not store any Personally Identifiable Information (PII) or system-specific identifiers (e.g., hostnames, usernames) in the database or logs.
+
+    **Method of Measurement**: This is enforced through code review and static analysis. All pull requests will be checked to ensure:
+
+      Worker IDs are generated using a random method (e.g., uuid.uuid4()).
+
+      User-Agent strings in harvesters are generic and do not contain personal information like emails.
+
+      No code attempts to access or store system-level user or host information.
+
+    **Rationale**: This is a foundational security and privacy requirement. It minimizes the operational security footprint of the system and protects the privacy of its operators.
+
+*   SLO-Q1 (Quality Improvement)
+
+    **Objective**: Each hierarchical tier of the Triumvirate Council must produce a demonstrably superior intelligence product compared to the tier below it.
+
+    **Method of Measurement**: This is measured by the ab_test_judger.py script and its council of LLM judges.
+
+      **Phase 2 Goal**: The Directorate Summary score must be ≥ 1.25x the score of the best single Analyst report.
+
+      **Phase 3 Goal**: The final Judge's Report score must be ≥ 1.15x the score of the best Directorate Summary.
+
+    **Rationale**: This is the ultimate measure of the system's value. It provides a quantitative, objective answer to the question, "Does our adversarial, hierarchical architecture actually produce a better result?" It is the core driver for the entire project.
+
+---
+
+## Part 6: The Harvester Forge (Future Vision)
+
+_This section documents our long-term vision for the system's self-generation capabilities, guiding future architectural choices._
+
+The ultimate vision is to create a **Harvester Refactoring Engine**. This is not a system that writes code from scratch, but a pragmatic, template-based engine that allows the system to build new harvesters with minimal human intervention.
+
+**The Workflow:**
+1.  **Manual Creation & Pattern Discovery:** We will first manually build a dozen robust harvesters, identifying the core functional elements common to all of them (authentication, request logic, pagination, parsing).
+2.  **Decomposition and Templating:** We will then refactor these into a `generic_harvester_template.py` file, replacing specific implementations with placeholders (e.g., `{{API_HOST}}`, `{{RESULTS_LIST_KEY}}`).
+3.  **LLM-Powered Configuration:** A user will provide the API documentation for a new source. An LLM will be tasked not with writing code, but with reading the documentation and outputting a JSON object that contains the correct values for all the placeholders in the template.
+4.  **Deterministic Code Generation:** A Python script will then perform a simple, reliable string replacement on the template using the LLM-generated JSON, producing a complete, syntactically correct new harvester script.
+5.  **Sandbox Validation:** The new script will be automatically run in a secure sandbox to validate its functionality before being presented to a human developer for final approval via a pull request.

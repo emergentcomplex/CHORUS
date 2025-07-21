@@ -12,14 +12,22 @@ Before making any changes, you must familiarize yourself with the two foundation
 
 ## The Development Workflow
 
-This project is developed in partnership with a generative AI assistant. The workflow is designed to leverage the AI for implementation while maintaining strict human architectural oversight.
+This project is developed in partnership with a generative AI assistant. To ensure consistency and adherence to our axioms, all development sessions **must** be bootstrapped using the official Genesis Prompt.
 
-1.  **Blueprint First:** All new features or major changes must first be proposed and accepted as an update to the `/docs/blueprint.md`. We do not write code until the plan is codified.
+### Starting a New Development Session
 
-2.  **Test-Driven Development:** All new components (e.g., harvesters) must be accompanied by a corresponding test suite. The tests must validate not only the functional correctness but also the component's adherence to the system's **Service-Level Objectives (SLOs)** as defined in the blueprint.
+1.  **Generate the Context:** From the project's root directory, run the context generation script:
+    ```bash
+    ./scripts/generate_context.sh
+    ```
+    This will create a file named `CONTEXT_FOR_AI.txt` in the project root. This file is ignored by Git.
 
-3.  **Atomic Commits:** Commits should be small, logical, and focused on a single feature or fix. Commit messages should be clear and concise.
+2.  **Start a New Conversation:** Open a new conversation with the designated LLM (Gemini 2.5 Pro).
 
-4.  **Pull Requests:** All changes should be submitted via a pull request from a feature branch. The description of the pull request should reference which part of the blueprint it is implementing.
+3.  **Provide the Genesis Context:** Copy the *entire contents* of `CONTEXT_FOR_AI.txt` and paste it as the very first prompt in the new conversation.
+
+4.  **Await Confirmation:** The AI should respond with: *"Understood. The CHORUS Genesis context is loaded. I am ready to proceed."*
+
+5.  **Begin Development:** You can now proceed with the development tasks, confident that the AI is fully aligned with the project's architecture, axioms, and current state.
 
 By adhering to this process, we ensure that the CHORUS engine remains robust, scalable, and true to its core mission.

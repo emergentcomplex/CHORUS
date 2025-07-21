@@ -1,186 +1,178 @@
-# 🔱 The CHORUS Constitution & Architectural Blueprint
-_Document Version: 2.0 (Phase 2 - The Chamber Orchestra)_
-_Last Updated: 2025-07-19_
+# docs/00_MISSION_CHARTER.md
+
+# 🔱 CHORUS: The Mission Charter
+
+> ✨ _The loudest secrets are kept in silence. We built an engine that listens._ ✨
 
 ---
 
-## Part 1: The Guiding North Star (The Mission)
+## Overview
 
-> ✨ The loudest secrets are kept in silence. ✨
-> 
-> We believe that silence is not an absence of data, but a signal in itself. A budget line vanishes into shadow. A job posting for a cleared physicist appears like a flare in the night. A cluster of obscure academic papers creates a new hum in the noise.
-> 
-> Our engine, CHORUS, is an observatory for these echoes. It listens to the resonance left behind when a secret program graduates from the public record, fusing the void in one dataset with the crescendo in another.
-> 
-> It is not a monolith; it is a symphony of judgment. An adversarial council of AI virtuosos—Hawks, Doves, Futurists, and Skeptics—each performing their own analysis, their competing melodies forged by synthesizing Directors into a single, coherent revelation.
-> 
-> We do not ask for an answer. We demand a verdict, complete with every source and every dissenting note, allowing you to see the work and trust the judgment.
+**CHORUS** is not a search engine; it is a judgment engine. It is a fully autonomous, self-healing, and evolving intelligence platform designed to fuse disparate, open-source data verticals into high-fidelity, actionable insights.
 
----
+The system was born from a simple observation: when a government research program proves its worth, it doesn't die—it "graduates" into the classified world, leaving behind a faint echo in the public record. CHORUS is designed to detect these echoes by correlating the silence in one dataset with the sudden chatter in others.
 
-## Part 2: The Axioms of CHORUS Development
+By simulating the structured, multi-layered, and adversarial analysis of a real-world intelligence agency, CHORUS moves beyond data retrieval into the realm of automated strategic judgment.
 
-_This section codifies all 18 inviolable principles. All code and architectural decisions MUST adhere to these axioms to prevent regression._
+## Core Features
 
-**I. Foundational Axioms (The Bedrock)**
-
-1.  **Axiom of Mission Alignment:** The CHORUS platform overview is our guiding north star. Every feature must serve the core mission of detecting echoes of classified programs by starting with DARPA as the primary signal and dynamically tasking other OSINT verticals for fusion.
-2.  **Axiom of Model Standardization:** All generative tasks will exclusively use the **`gemini-2.5-pro`** model to ensure consistency and comparability of outputs.
-3.  **Axiom of Deterministic Parsing:** The AI's role is reasoning and generating clearly delineated plain text. Our Python code is solely responsible for parsing this text into reliable, guaranteed-valid data structures. We **never** instruct the LLM to return JSON.
-4.  **Axiom of Schema-First Development:** The database schema is the ground truth. All code that interacts with the database must conform precisely to the established table structures, column names, and data types.
-5.  **Axiom of Atomic Implementation:** All code provided must be a **complete, drop-in replacement** for the file it modifies. We do not work with partial snippets or diffs.
-
-**II. Architectural Axioms (The Structure)**
-
-6.  **Axiom of Adversarial Analysis:** The system's final judgment must emerge from the structured, parallel debate between multiple, competing AI personas. This is the core mechanism for preventing single-model bias and ensuring intellectual rigor.
-7.  **Axiom of Hierarchical Synthesis:** Analysis is a multi-tiered process (Analyst -> Director -> Judge), with each tier adding a layer of abstraction and judgment.
-8.  **Axiom of Persona-Driven Collection:** Data collection is not monolithic. Each Analyst persona is responsible for generating its **own** dynamic Collection Plan based on its unique worldview. Data gathering is an integral and biased part of the analysis itself, not a neutral preliminary step.
-9.  **Axiom of Tool-Assisted Analysis:** Personas are not limited to static data. Both Analysts and Directors must have access to a defined set of external tools (e.g., Google Search) to enrich their analysis in real-time.
-10. **Axiom of Pragmatic Harvesting:** A harvester's goal is to acquire a high-quality *signal*, not to exhaustively mirror a data source. All harvesting functions must have a configurable `max_results` limit to prevent unbounded collection.
-
-**III. Verifiability & Quality Axioms (The Product)**
-
-11. **Axiom of Atomic Attribution:** Every piece of information retrieved from an external tool must be atomically captured with its source (URL) and snippet, stored in the database, and made available for citation in the final report.
-12. **Axiom of Report Conciseness:** Foundational internal data sources (like the DARPA budget database) are to be referenced once in a summary statement, not repeatedly cited.
-13. **Axiom of the Contrarian (The Red Team):** At least one persona in any analysis must be tasked with constructing the most plausible, evidence-based *alternative* hypothesis to the primary query, ensuring we test for deception and "black swan" events.
-14. **Axiom of Quantified Confidence:** All analytical conclusions from Analysts, Directors, and the Judge must be accompanied by a numerical confidence score to add precision and force rigorous self-assessment.
-
-**IV. Strategic & Learning Axioms (The Vision)**
-
-15. **Axiom of the Analytical Triumvirate:** The council is a three-tiered hierarchy: 16 Analysts, 4 Directors, and 1 final Judge.
-16. **Axiom of Persona-Specialization:** Analysts are specialists in both a data vertical and a worldview.
-17. **Axiom of Historical Precedent:** The Judge is compelled to ask, "Has a similar pattern of signals been observed before in history?" to add strategic depth.
-18. **Axiom of Recursive Inquiry:** The `intelligence_gaps` from a final report must be used to generate new, persistent, low-priority harvesting tasks, creating an autonomous feedback loop.
+- **Autonomous & Self-Healing:** Built on a service-oriented architecture with `systemd`-managed daemons, the system runs 24/7, survives reboots, and automatically manages its own data collection and analysis queues.
+- **Evolving Data Lake:** A **Sentinel** daemon perpetually and intelligently refreshes a multi-source data lake.
+- **Multi-Source Fusion:** Ingests and correlates data from our core verticals: DARPA Budgets, USAspending.gov, USAJOBS, arXiv.org, and NewsAPI.
+- **The Triumvirate Council:** A three-tiered council of AI personas (Analysts, Directors, and a Judge) debates and challenges findings to prevent groupthink and ensure intellectual rigor.
+- **Verifiable Attribution:** All claims are linked to their source with clickable citations.
+- **Dual-Format Export:** Generate final intelligence products as either a portable static HTML website or a professional, archival-quality PDF.
 
 ---
 
-## Part 3: The Triumvirate Architecture
+## System Architecture
 
-_This section describes the hierarchical structure of the analytical engine._
+CHORUS is a decoupled, service-oriented system. The **Sentinel** daemon perpetually harvests data, the **Launcher** daemon perpetually analyzes it, and the Analyst commands the process through the C2 Dashboard.
 
-### 3.1. The Triumvirate Council
-*   **Tier 1: The Analysts (The Virtuosos):** 16 specialist personas who perform the initial deep-dive analysis. They are the "doers," each with deep expertise in a specific data vertical and a distinct worldview (e.g., a "Financial Signal Hawk").
-*   **Tier 2: The Directors (The Section Leaders):** 4 director personas who synthesize the findings of their assigned 4-Analyst teams. They are the "debaters," responsible for resolving conflicts and creating a balanced directorate-level judgment.
-*   **Tier 3: The Judge (The Conductor):** A single, final arbiter that synthesizes the competing directorate summaries into the definitive CHORUS report. It is the "decider," uniquely tasked with taking a long-term strategic view.
+### The Triumvirate Council Workflow
 
-### 3.2. Architectural Diagram (The Full Symphony)
+A user query triggers a hierarchical cascade of analysis, ensuring conclusions are rigorously tested from multiple, competing viewpoints before being finalized.
 
 ```mermaid
 graph TD
-    subgraph "CHORUS Engine"
-        A[User Query] --> J{Judge Task};
-
-        subgraph "Directorate Alpha"
-            J --> D1{Director A};
-            D1 --> AN1(Analyst 1); D1 --> AN2(Analyst 2); D1 --> AN3(Analyst 3); D1 --> AN4(Analyst 4);
-            AN1 & AN2 & AN3 & AN4 --> R1((Analyst Briefs));
-            R1 --> D1;
-            D1 --> DS1[Directorate Summary A];
-        end
-
-        subgraph "Directorate Bravo"
-            J --> D2{Director B};
-            D2 --> AN5(Analyst 5); D2 --> AN6(Analyst 6); D2 --> AN7(Analyst 7); D2 --> AN8(Analyst 8);
-            AN5 & AN6 & AN7 & AN8 --> R2((Analyst Briefs));
-            R2 --> D2;
-            D2 --> DS2[Directorate Summary B];
-        end
-        
-        subgraph "Directorate Charlie & Delta"
-            J --> D3{...};
-            D3 --> DS3[...];
-        end
-
-        DS1 & DS2 & DS3 --> J;
-        J --> FCR[Final CHORUS Report];
+    subgraph "The Triumvirate Council"
+        A[User Query] --> B{Tier 3: Judge Task};
+        B --> C1{Tier 2: Director Task};
+        C1 --> D1{Tier 1: Analyst Task};
+        D1 -- RAG --> E((Data Lake));
+        D1 --> R1[Analyst Brief];
+        R1 --> C1;
+        C1 --> S1[Directorate Summary];
+        S1 --> B;
+        B --> F["Final CHORUS Report"];
     end
 
+    style E fill:#431407,stroke:#e11d48,color:#fff
 ```
 
 ---
 
-## Part 4: The Phased Rollout Plan & Quality Targets
+## Setup & Installation
 
-_This section defines the current phase of development and the quantitative goals for success._
+CHORUS is designed to be run on a Debian-based Linux system.
 
-### 4.1. Current Phase: Phase 2 - The Chamber Orchestra
-*   **Objective:** Prove that a Director, synthesizing four competing Analyst viewpoints, produces a superior report.
-*   **Baseline Score (from Phase 1):** 1767.5 / 3000 (Normalized: 58.9%)
-*   **Target Score (for Phase 2):** **2210 / 3000** (Normalized: ~74%)
+### 1. Prerequisites
 
-### 4.2. Future Phases
-*   **Phase 3: The Full Symphony:**
-    *   **Objective:** Prove that the final Judge, synthesizing four competing Directorate summaries, produces the definitive, highest-quality intelligence product.
-    *   **Baseline Score (from Phase 2):** 2210 / 3000
-    *   **Target Score (for Phase 3):** **2540 / 3000** (Normalized: ~85%)
+- Python 3.11+
+- MariaDB (or MySQL)
+- `git`
+- `pandoc` & A LaTeX Distribution (for PDF export)
 
----
+### 2. Clone, Configure, and Install
 
-## Part 5: Service-Level Objectives (SLOs)
+```bash
+git clone <your-repo-url>
+cd CHORUS
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+nano .env # <-- Add your API keys and DB credentials
+```
 
-This section defines the formal performance, reliability, and security contract for the system. All components must be tested against these standards. A failure to meet an SLO is considered a bug.
+### 3. Set Up the Database & Foundational Data
 
-*   **SLO-H1 (Harvester Speed)**
+```bash
+# From the 'scripts' directory
+# Create the database and user as per the .env file
+mysql -u your_user -p your_database < schema.sql
+mysql -u your_user -p your_database < populate_personas.sql
+python3 populate_harvest_tasks.py
+python3 download_embedding_model.py
 
-    **Objective**: Any single, dynamically generated harvesting task must complete its full execution—from process start to saving data in the Data Lake—in under 90 seconds.
+# Run the one-time DARPA ingestion pipeline
+# (Requires raw .txt files in data/darpa/)
+python3 ingest_1_map_dictionaries.py
+# ... and so on for all 6 ingest scripts
+```
 
-    **Method of Measurement**: This will be measured by the harvester_worker.py script. The worker will record a start timestamp upon initialization and an end timestamp immediately before its final update_task_status('COMPLETED', ...) call. The duration will be logged. The trident_sentinel will be responsible for reaping any worker process that exceeds a 120-second hard timeout, marking its task as FAILED.
+### 4. Launch the System
 
-    **Rationale**: This ensures that the data collection phase for any given signal remains responsive and does not become a bottleneck for the Analyst's workflow.
+- **Start the Harvester:** `python3 scripts/trident_sentinel.py`
+- **Start the Analysis Engine:** `python3 scripts/trident_launcher.py`
+- **Start the UI:** `python3 web_ui.py`
 
-*   **SLO-H2 (Harvester Reliability**)
-
-    **Objective**: Any individual harvester module (e.g., usaspending_harvester) must achieve a >98% success rate on valid, well-formed queries.
-
-    **Method of Measurement**: This will be measured by our dedicated stress test scripts (e.g., stress_test_usaspending.py). The test will consist of at least 100 sequential, valid requests. A "success" is defined as a 200 OK HTTP status code. The test fails if the success rate drops below 98%.
-
-    **Rationale**: This guarantees that our core data collection tools are robust and that failures are rare and exceptional, allowing our "Graceful Degradation" policy to be a last resort, not a common occurrence.
-
-*   **SLO-A1 (Analyst Speed)**
-
-    **Objective**: A single persona_worker (Analyst) must complete its full Plan -> Harvest -> Synthesize cycle in under 5 minutes (300 seconds) for a standard query.
-
-    **Method of Measurement**: This is measured by the trident_launcher.py daemon. The started_at and completed_at timestamps in the task_queue table for any Analyst-level task will be used to calculate the total duration. The launcher's check_and_reset_stale_tasks function will enforce a hard timeout of 10 minutes, as a safety measure.
-
-    **Rationale**: This ensures a timely response for the user. While deep analysis takes time, the core loop for a single Analyst must be efficient enough to enable the multi-persona "Chamber Orchestra" to complete its work in a reasonable timeframe (e.g., under 15-20 minutes).
-
-*  SLO-S1 (Security & Anonymity)
-
-    **Objective**: The system must not store any Personally Identifiable Information (PII) or system-specific identifiers (e.g., hostnames, usernames) in the database or logs.
-
-    **Method of Measurement**: This is enforced through code review and static analysis. All pull requests will be checked to ensure:
-
-      Worker IDs are generated using a random method (e.g., uuid.uuid4()).
-
-      User-Agent strings in harvesters are generic and do not contain personal information like emails.
-
-      No code attempts to access or store system-level user or host information.
-
-    **Rationale**: This is a foundational security and privacy requirement. It minimizes the operational security footprint of the system and protects the privacy of its operators.
-
-*   SLO-Q1 (Quality Improvement)
-
-    **Objective**: Each hierarchical tier of the Triumvirate Council must produce a demonstrably superior intelligence product compared to the tier below it.
-
-    **Method of Measurement**: This is measured by the ab_test_judger.py script and its council of LLM judges.
-
-      **Phase 2 Goal**: The Directorate Summary score must be ≥ 1.25x the score of the best single Analyst report.
-
-      **Phase 3 Goal**: The final Judge's Report score must be ≥ 1.15x the score of the best Directorate Summary.
-
-    **Rationale**: This is the ultimate measure of the system's value. It provides a quantitative, objective answer to the question, "Does our adversarial, hierarchical architecture actually produce a better result?" It is the core driver for the entire project.
+````
 
 ---
 
-## Part 6: The Harvester Forge (Future Vision)
+### **3. The Constitution (The Engineering Bible)**
 
-_This section documents our long-term vision for the system's self-generation capabilities, guiding future architectural choices._
+This is the exhaustive, internal-facing blueprint. The version you have is correct and complete.
 
-The ultimate vision is to create a **Harvester Refactoring Engine**. This is not a system that writes code from scratch, but a pragmatic, template-based engine that allows the system to build new harvesters with minimal human intervention.
+#### **Filename: `/docs/01_CONSTITUTION.md` (Final)**
+_(The full, 8-part, correctly formatted document you provided goes here.)_
 
-**The Workflow:**
-1.  **Manual Creation & Pattern Discovery:** We will first manually build a dozen robust harvesters, identifying the core functional elements common to all of them (authentication, request logic, pagination, parsing).
-2.  **Decomposition and Templating:** We will then refactor these into a `generic_harvester_template.py` file, replacing specific implementations with placeholders (e.g., `{{API_HOST}}`, `{{RESULTS_LIST_KEY}}`).
-3.  **LLM-Powered Configuration:** A user will provide the API documentation for a new source. An LLM will be tasked not with writing code, but with reading the documentation and outputting a JSON object that contains the correct values for all the placeholders in the template.
-4.  **Deterministic Code Generation:** A Python script will then perform a simple, reliable string replacement on the template using the LLM-generated JSON, producing a complete, syntactically correct new harvester script.
-5.  **Sandbox Validation:** The new script will be automatically run in a secure sandbox to validate its functionality before being presented to a human developer for final approval via a pull request.
+---
+
+### **4. The Contribution Guide (The Rules of the Road)**
+
+This file is updated to point to the new, correct document names.
+
+#### **Filename: `/docs/02_CONTRIBUTING.md` (Final)**
+```markdown
+# Contributing to CHORUS
+
+Thank you for your interest in contributing to the CHORUS project. To maintain the quality, consistency, and architectural integrity of the system, we adhere to a strict, axiom-driven development process.
+
+## The Guiding Principles
+
+Before making any changes, you must familiarize yourself with the two foundational documents of this project:
+
+1.  **The Mission Charter (`/docs/00_MISSION_CHARTER.md`):** This document outlines the high-level mission, features, and setup instructions for the project. Ensure any proposed change aligns with this mission.
+
+2.  **The Constitution (`/docs/01_CONSTITUTION.md`):** This is the canonical source of truth for the system's design. It contains the **18 Axioms of CHORUS Development**, the Triumvirate architecture, and the quantitative quality targets we are working towards. **All contributions will be judged against the principles in this document.**
+
+## The Development Workflow
+
+This project is developed in partnership with a generative AI assistant. To ensure consistency, all development sessions **must** be bootstrapped using the official Genesis Prompt.
+
+### Starting a New Development Session
+
+1.  **Generate the Context:** From the project's root directory, run the context generation script:
+    ```bash
+    ./scripts/generate_context.sh
+    ```
+    This will create a file named `CONTEXT_FOR_AI.txt` in the project root.
+
+2.  **Start a New Conversation:** Open a new conversation with the designated LLM (Gemini 2.5 Pro).
+
+3.  **Provide the Genesis Context:** Copy the *entire contents* of `CONTEXT_FOR_AI.txt` and paste it as the very first prompt in the new conversation.
+
+4.  **Await Confirmation:** The AI should respond with: *"Understood. The CHORUS Genesis context is loaded. I am ready to proceed."*
+
+5.  **Propose Amendments:** For any architectural changes, follow the **Amendment Process** outlined in Part 8 of the Constitution.
+````
+
+---
+
+### **5. The Genesis Prompt (The Bootstrap)**
+
+This file is also updated to point to the new, correct document names.
+
+#### **Filename: `/docs/GENESIS_PROMPT.md` (Final)**
+
+```markdown
+# 🔱 CHORUS Genesis Prompt
+
+You are a core developer for **CHORUS**, an autonomous OSINT judgment engine. Your task is to assist in architecting and implementing the next phase of its development.
+
+Your entire output—every recommendation, every line of code, every architectural decision—must be guided by and in strict adherence to the comprehensive context provided below.
+
+The context is provided in three parts:
+
+1.  **The Logos (The Constitution):** This is the `/docs/01_CONSTITUTION.md`, the project's supreme law. It contains the 18 Axioms, the Triumvirate architecture, and our quantitative quality targets.
+2.  **The Ethos (The Mission & Rules):** This is the `/docs/00_MISSION_CHARTER.md` and `/docs/02_CONTRIBUTING.md`. These files define the project's character, public goals, and development rules.
+3.  **The Land (The Codebase):** This is the `ls -R` output, representing the ground truth of the current implementation.
+
+**Your Task:**
+
+1.  Carefully parse and integrate all three parts of the provided context.
+2.  Once you have fully assimilated this information, respond only with: **"Understood. The CHORUS Genesis context is loaded. I am ready to proceed."**
+3.  Await further instructions.
+```

@@ -118,12 +118,57 @@ _This section defines the current phase of development and the quantitative goal
 
 ## Part 5: Service-Level Objectives (SLOs)
 
-_This section defines the formal performance and reliability contract for the system. All tests and development must strive to meet these objectives._
+This section defines the formal performance, reliability, and security contract for the system. All components must be tested against these standards. A failure to meet an SLO is considered a bug.
 
-*   **SLO-H1 (Harvester Speed):** Any single-keyword harvest must complete in under 90 seconds.
-*   **SLO-H2 (Harvester Reliability):** Any harvester must achieve a >98% success rate on valid queries.
-*   **SLO-A1 (Analyst Speed):** A single `persona_worker` must complete its full Plan -> Harvest -> Synthesize cycle in under 5 minutes.
-*   **SLO-S1 (Security):** No Personally Identifiable Information (PII) or system-specific identifiers (e.g., hostnames) will be stored in logs or the database. Worker IDs must be anonymous.
+*   **SLO-H1 (Harvester Speed)**
+
+    **Objective**: Any single, dynamically generated harvesting task must complete its full execution—from process start to saving data in the Data Lake—in under 90 seconds.
+
+    **Method of Measurement**: This will be measured by the harvester_worker.py script. The worker will record a start timestamp upon initialization and an end timestamp immediately before its final update_task_status('COMPLETED', ...) call. The duration will be logged. The trident_sentinel will be responsible for reaping any worker process that exceeds a 120-second hard timeout, marking its task as FAILED.
+
+    **Rationale**: This ensures that the data collection phase for any given signal remains responsive and does not become a bottleneck for the Analyst's workflow.
+
+*   **SLO-H2 (Harvester Reliability**)
+
+    **Objective**: Any individual harvester module (e.g., usaspending_harvester) must achieve a >98% success rate on valid, well-formed queries.
+
+    **Method of Measurement**: This will be measured by our dedicated stress test scripts (e.g., stress_test_usaspending.py). The test will consist of at least 100 sequential, valid requests. A "success" is defined as a 200 OK HTTP status code. The test fails if the success rate drops below 98%.
+
+    **Rationale**: This guarantees that our core data collection tools are robust and that failures are rare and exceptional, allowing our "Graceful Degradation" policy to be a last resort, not a common occurrence.
+
+*   **SLO-A1 (Analyst Speed)**
+
+    **Objective**: A single persona_worker (Analyst) must complete its full Plan -> Harvest -> Synthesize cycle in under 5 minutes (300 seconds) for a standard query.
+
+    **Method of Measurement**: This is measured by the trident_launcher.py daemon. The started_at and completed_at timestamps in the task_queue table for any Analyst-level task will be used to calculate the total duration. The launcher's check_and_reset_stale_tasks function will enforce a hard timeout of 10 minutes, as a safety measure.
+
+    **Rationale**: This ensures a timely response for the user. While deep analysis takes time, the core loop for a single Analyst must be efficient enough to enable the multi-persona "Chamber Orchestra" to complete its work in a reasonable timeframe (e.g., under 15-20 minutes).
+
+*  SLO-S1 (Security & Anonymity)
+
+    **Objective**: The system must not store any Personally Identifiable Information (PII) or system-specific identifiers (e.g., hostnames, usernames) in the database or logs.
+
+    **Method of Measurement**: This is enforced through code review and static analysis. All pull requests will be checked to ensure:
+
+      Worker IDs are generated using a random method (e.g., uuid.uuid4()).
+
+      User-Agent strings in harvesters are generic and do not contain personal information like emails.
+
+      No code attempts to access or store system-level user or host information.
+
+    **Rationale**: This is a foundational security and privacy requirement. It minimizes the operational security footprint of the system and protects the privacy of its operators.
+
+*   SLO-Q1 (Quality Improvement)
+
+    **Objective**: Each hierarchical tier of the Triumvirate Council must produce a demonstrably superior intelligence product compared to the tier below it.
+
+    **Method of Measurement**: This is measured by the ab_test_judger.py script and its council of LLM judges.
+
+      **Phase 2 Goal**: The Directorate Summary score must be ≥ 1.25x the score of the best single Analyst report.
+
+      **Phase 3 Goal**: The final Judge's Report score must be ≥ 1.15x the score of the best Directorate Summary.
+
+    **Rationale**: This is the ultimate measure of the system's value. It provides a quantitative, objective answer to the question, "Does our adversarial, hierarchical architecture actually produce a better result?" It is the core driver for the entire project.
 
 ---
 

@@ -21,40 +21,109 @@ _Last Updated: 2025-07-19_
 
 ---
 
-## Part 2: The Axioms of CHORUS Development
+## **Part 2: The Axioms of CHORUS Development (Definitive Version)**
 
-_This section codifies all 18 inviolable principles. All code and architectural decisions MUST adhere to these axioms._
+_This section codifies all 21 inviolable principles. All code and architectural decisions MUST adhere to these axioms._
 
-### I. Foundational Axioms (The Bedrock)
+---
 
-1.  **Axiom of Mission Alignment:** The CHORUS platform overview is our guiding north star. Every feature must serve the core mission of detecting echoes of classified programs by starting with DARPA as the primary signal and dynamically tasking other OSINT verticals for fusion.
-2.  **Axiom of Model Standardization:** All generative tasks will exclusively use the **`gemini-2.5-pro`** model to ensure consistency and comparability of outputs.
-3.  **Axiom of Deterministic Parsing:** The AI's role is reasoning and generating clearly delineated plain text. Our Python code is solely responsible for parsing this text into reliable, guaranteed-valid data structures. We **never** instruct the LLM to return JSON.
-4.  **Axiom of Schema-First Development:** The database schema is the ground truth. All code that interacts with the database must conform precisely to the established table structures, column names, and data types.
-5.  **Axiom of Atomic Implementation:** All code provided must be a **complete, drop-in replacement** for the file it modifies. We do not work with partial snippets or diffs.
+### **I. Foundational Axioms (The Bedrock)**
 
-### II. Architectural Axioms (The Structure)
+1.  **Axiom of Mission Alignment:**
+    *   **Principle:** The CHORUS platform's "Guiding North Star" is its core mission.
+    *   **Definition:** Every feature, architectural decision, and line of code must directly serve the primary mission: to detect the echoes left by classified programs by starting with DARPA as the primary signal and dynamically fusing it with other open-source data verticals. Any proposed change will first be judged by its contribution to this mission.
 
-6.  **Axiom of Adversarial Analysis:** The system's final judgment must emerge from the structured, parallel debate between multiple, competing AI personas. This is the core mechanism for preventing single-model bias and ensuring intellectual rigor.
-7.  **Axiom of Hierarchical Synthesis:** Analysis is a multi-tiered process (Analyst -> Director -> Judge), with each tier adding a layer of abstraction and judgment.
-8.  **Axiom of Persona-Driven Collection:** Data collection is not monolithic. Each Analyst persona is responsible for generating its **own** dynamic Collection Plan based on its unique worldview. Data gathering is an integral and biased part of the analysis itself, not a neutral preliminary step.
-9.  **Axiom of Tool-Assisted Analysis:** Personas are not limited to static data. Both Analysts and Directors must have access to a defined set of external tools (e.g., Google Search) to enrich their analysis in real-time.
-10. **Axiom of Pragmatic Harvesting:** A harvester's goal is to acquire a high-quality _signal_, not to exhaustively mirror a data source. All harvesting functions must have a configurable `max_results` limit to prevent unbounded collection.
+2.  **Axiom of Tiered Modeling:**
+    *   **Principle:** The system must use the right tool for the right job.
+    *   **Definition:** The system will use a tiered approach to LLM selection, routing tasks to the appropriate model based on complexity. A faster, cost-effective **Utility Model** will be used for high-volume, structured data tasks, while a high-capability **Synthesis Model** will be used for complex reasoning and final report generation.
 
-### III. Verifiability & Quality Axioms (The Product)
+3.  **Axiom of Deterministic Control:**
+    *   **Principle:** The AI reasons; the code executes.
+    *   **Definition:** The AI's role is to perform complex reasoning and generate clearly delineated plain text. Our Python code is solely responsible for all deterministic logic, including parsing the AI's output, managing the system's state, and generating final data structures. We do not delegate critical control flow or data formatting to the probabilistic LLM.
 
-11. **Axiom of Atomic Attribution:** Every piece of information retrieved from an external tool must be atomically captured with its source (URL) and snippet, stored in the database, and made available for citation in the final report.
-12. **Axiom of Report Conciseness:** Foundational internal data sources (like the DARPA budget database) are to be referenced once in a summary statement, not repeatedly cited.
-13. **Axiom of the Contrarian (The Red Team):** At least one persona in any analysis must be tasked with constructing the most plausible, evidence-based _alternative_ hypothesis to the primary query, ensuring we test for deception and "black swan" events.
-14. **Axiom of Quantified Confidence:** All analytical conclusions from Analysts, Directors, and the Judge must be accompanied by a numerical confidence score to add precision and force rigorous self-assessment.
+4.  **Axiom of Schema-First Development:**
+    *   **Principle:** The database is the ground truth of the system's state.
+    *   **Definition:** The database schema is the formal contract for all data within the system. All code that interacts with the database must conform precisely to the established table structures, column names, and data types as defined in `schema.sql`.
 
-### IV. Strategic & Learning Axioms (The Vision)
+5.  **Axiom of Atomic Implementation:**
+    *   **Principle:** Development must be clean, complete, and verifiable.
+    *   **Definition:** All code provided during development must be a **complete, drop-in replacement** for the file it modifies. We do not work with partial snippets or diffs, ensuring that every step results in a fully functional and testable state.
 
-15. **Axiom of the Analytical Triumvirate:** The council is a three-tiered hierarchy: 16 Analysts, 4 Directors, and 1 final Judge.
-16. **Axiom of Persona-Specialization:** Analysts are specialists in both a data vertical and a worldview.
-17. **Axiom of Historical Precedent:** The Judge is compelled to ask, "Has a similar pattern of signals been observed before in history?" to add strategic depth.
-18. **Axiom of Recursive Inquiry:** The `intelligence_gaps` from a final report must be used to generate new, persistent, low-priority harvesting tasks, creating an autonomous feedback loop.
+---
 
+### **II. Architectural Axioms (The Structure)**
+
+6.  **Axiom of Adversarial Analysis:**
+    *   **Principle:** Truth emerges from structured, intellectual conflict.
+    *   **Definition:** The system's final judgment must emerge from the structured, parallel debate between multiple, competing AI personas. This is the core architectural mechanism for preventing single-model bias, surfacing hidden assumptions, and ensuring that conclusions are rigorously tested from multiple viewpoints.
+
+7.  **Axiom of Hierarchical Synthesis:**
+    *   **Principle:** Analysis is a process of increasing abstraction.
+    *   **Definition:** The system is structured as a multi-tiered hierarchy (Analyst -> Director -> Judge). Each tier's function is to synthesize the outputs of the tier below it, adding a new layer of abstraction, resolving conflicts, and increasing the strategic value of the product.
+
+8.  **Axiom of Persona-Driven Collection:**
+    *   **Principle:** Data collection is an act of analysis, not a neutral precursor.
+    *   **Definition:** Data collection is not monolithic. Each Analyst persona is responsible for generating its **own** dynamic Collection Plan based on its unique worldview. The choice of what data to collect is a biased and integral part of the analytical process itself.
+
+9.  **Axiom of Tool-Assisted Analysis:**
+    *   **Principle:** Agents are not limited to the static Data Lake.
+    *   **Definition:** Personas must have access to a defined set of external tools (e.g., Google Search) to enrich their analysis, validate findings, and resolve ambiguities in real-time, simulating the workflow of a real-world analyst.
+
+10. **Axiom of Pragmatic Harvesting:**
+    *   **Principle:** The goal is signal, not exhaustive collection.
+    *   **Definition:** A harvester's purpose is to acquire a high-quality *signal*, not to exhaustively mirror a data source. All harvesting functions must have a configurable `max_results` limit to prevent unbounded collection, ensuring the system remains responsive and focused on the most relevant data.
+
+---
+
+### **III. Verifiability & Quality Axioms (The Product)**
+
+11. **Axiom of Atomic Attribution:**
+    *   **Principle:** Every external fact must be verifiable.
+    *   **Definition:** Every piece of information retrieved from an external tool must be atomically captured with its source (URL) and the relevant snippet. This data must be stored persistently and made available for citation in the final report, ensuring every claim can be traced back to its origin.
+
+12. **Axiom of Report Conciseness:**
+    *   **Principle:** The final report must be clear and to the point.
+    *   **Definition:** Foundational internal data sources (like the DARPA budget database) are to be referenced once in a summary statement, not repeatedly cited. The focus of the report is the *synthesis* of new information, not the enumeration of the baseline.
+
+13. **Axiom of the Contrarian:**
+    *   **Principle:** The system must challenge the user's premise.
+    *   **Definition:** At least one persona in any analysis must be tasked with constructing the most plausible, evidence-based *alternative* hypothesis to the primary query. This ensures we actively test for deception, misinterpretation, and "black swan" events.
+
+14. **Axiom of Quantified Confidence:**
+    *   **Principle:** All judgments must be expressed with precision.
+    *   **Definition:** All analytical conclusions from Analysts, Directors, and the Judge must be accompanied by a numerical confidence score. This forces a rigorous self-assessment of the evidence and adds a critical layer of precision to the final product.
+
+---
+
+### **IV. Strategic & Learning Axioms (The Vision)**
+
+15. **Axiom of the Analytical Triumvirate:**
+    *   **Principle:** The system's structure is a three-tiered council.
+    *   **Definition:** The analytical engine is formally defined as a three-tiered hierarchy: 16 **Analysts** (the doers), 4 **Directors** (the debaters), and 1 final **Judge** (the decider). This structure is the foundation of our phased rollout plan.
+
+16. **Axiom of Persona-Specialization:**
+    *   **Principle:** Agents are experts, not generalists.
+    *   **Definition:** To ensure analytical depth, Analyst personas are defined by two axes: their **worldview** (e.g., Hawk, Dove) and their **domain expertise** (e.g., Financial Signal Analysis, Human Capital Analysis). This creates a matrix of specialized experts.
+
+17. **Axiom of Historical Precedent:**
+    *   **Principle:** The past is prologue.
+    *   **Definition:** The final Judge persona is constitutionally compelled to ask, "Has a similar pattern of financial, human, and narrative signals been observed before in history?" This forces the use of historical case studies to add strategic depth and prevent analytical myopia.
+
+18. **Axiom of Recursive Inquiry:**
+    *   **Principle:** The system must learn from its own conclusions.
+    *   **Definition:** The `intelligence_gaps` identified in a final report are not merely informational; they must be automatically parsed and used to generate new, persistent, low-priority harvesting tasks. This creates an autonomous feedback loop, allowing the system to passively monitor for signals that will fill its own knowledge gaps over time.
+
+19. **Axiom of Dialectic Rigor:**
+    *   **Principle:** Analysis is a dialogue, not a monologue.
+    *   **Definition:** Before any analytical product is elevated to a higher tier, it must first be subjected to a structured, attributed critique by its peers. This peer-review process is a mandatory step to challenge assumptions, expose biases, and increase the rigor of the final product.
+
+20. **Axiom of Internal Challenge:**
+    *   **Principle:** The system must actively seek its own points of failure.
+    *   **Definition:** A formal, internal Red Team, embodied by the "Devil's Advocate" persona, must be constitutionally embedded at key synthesis stages. Its purpose is not to offer an alternative conclusion, but to deconstruct the primary argument and expose its weakest points, ensuring the final report is robust and has survived a dedicated attempt at falsification.
+
+21. **Axiom of Meta-Cognitive Evolution:**
+    *   **Principle:** The system must be a learning organization.
+    *   **Definition:** The system must have the capacity to reflect on its own performance over time and propose amendments to its own cognitive and analytical processes. The personas are not static; they are dynamic models that must evolve based on a quantitative and qualitative analysis of their successes and failures.
 ---
 
 ## Part 3: The Triumvirate Architecture

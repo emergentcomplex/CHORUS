@@ -1,4 +1,4 @@
-# Idea 07: Implement the "Dialectic Chamber" (Attributed Peer Review)
+# Idea 06: Implement the "Dialectic Chamber" (Attributed Peer Review)
 
 **1. Concept:**
 Enhance the Analyst tier by introducing a new, mandatory "Debate" phase. Before an Analyst can submit its final brief to its Director, it must first circulate a draft to its three directorate peers for critique and then revise its work based on their attributed feedback. This transforms the analysis from a set of four independent monologues into a true, collaborative-adversarial dialogue.

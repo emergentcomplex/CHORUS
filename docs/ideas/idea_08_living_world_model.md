@@ -1,4 +1,4 @@
-# Idea 09: Implement the "Living World Model" (Dynamic Persona Evolution)
+# Idea 08: Implement the "Living World Model" (Dynamic Persona Evolution)
 
 **1. Concept:**
 Evolve the AI personas from static, hard-coded definitions into dynamic, learning agents. This will be achieved by creating a new, persistent "Meta-Cognition Daemon" that periodically reviews the system's performance and proposes targeted, evidence-based amendments to the personas' core axioms and parameters, enabling the entire analytical council to learn and adapt over time.

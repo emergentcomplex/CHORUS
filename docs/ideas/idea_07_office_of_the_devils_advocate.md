@@ -1,4 +1,4 @@
-# Idea 08: Implement the "Office of the Devil's Advocate" (Multi-Stage Red Teaming)
+# Idea 07: Implement the "Office of the Devil's Advocate" (Multi-Stage Red Teaming)
 
 **1. Concept:**
 Activate the "Devil's Advocate" persona as a formal, automated Red Team that is constitutionally embedded at multiple stages of the synthesis process. Instead of a single, final critique, the Devil's Advocate will be triggered to challenge the work of both the **Directors** and the final **Judge**, ensuring that analytical flaws are caught and addressed before the final report is produced.

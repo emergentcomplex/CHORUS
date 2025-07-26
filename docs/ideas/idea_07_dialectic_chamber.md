@@ -15,14 +15,14 @@ This will be implemented as a new, multi-step "Debate" phase within the `persona
 
 - **B. Circulation & Critique:** The `director_worker` will spawn 12 new "critique" tasks.
 
-  - The `persona_worker`, in a lightweight "critique" mode, will make a single call to the fast and cost-effective **`utility`** model tier for each critique (`llm_client.generate_text(..., model_type='utility')`).
+  - The `persona_worker`, in a lightweight "critique" mode, will make a single call to the fast and cost-effective **`utility`** model tier for each critique (`llm_client.generate_text(..., model_type='utility')`). The prompt will be explicit: "You are [Reviewer Persona]. Provide a one-paragraph critique of the following draft from your colleague, the [Original Author Persona], based on your unique worldview."
 
 - **C. Revision:**
-  - Each Analyst receives the three critiques of its work.
+  - Each Analyst receives the three attributed critiques of its work.
   - It then performs a final "Revision" step, making one last call to the high-quality **`synthesis`** model tier to incorporate the feedback and produce its final, most defensible brief (`llm_client.generate_text(..., model_type='synthesis')`).
 
 **4. Next Steps:**
 
 - This is a major architectural evolution of the Analyst's cognitive process, best slated for **Phase 3**.
 - It requires a formal Amendment Proposal to the Constitution to codify the "Axiom of Dialectic Rigor."
-- The implementation will involve significant modifications to the `director_worker` and `persona_worker`.
+- The implementation will involve significant modifications to the `director_worker` (to act as the Debate Manager) and the `persona_worker` (to handle the new "critique" and "revision" modes).

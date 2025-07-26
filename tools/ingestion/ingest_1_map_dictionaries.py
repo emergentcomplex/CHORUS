@@ -35,7 +35,7 @@ def log_error(message):
 def call_gemini_api(prompt, context_data, attempt=1, max_retries=3):
     if attempt > max_retries: return None
     try:
-        model = genai.GenerativeModel("gemini-1.5-pro-latest")
+        model = genai.GenerativeModel("gemini-2.5-pro-latest")
         full_prompt = f"{prompt}\n\n[TEXT CHUNK TO ANALYZE START]\n{context_data}\n[TEXT CHUNK TO ANALYZE END]"
         response = model.generate_content(full_prompt)
         return response.text

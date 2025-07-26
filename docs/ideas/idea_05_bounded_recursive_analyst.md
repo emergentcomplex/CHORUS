@@ -7,21 +7,23 @@ Evolve the `persona_worker` from a linear, single-pass agent into a dynamic, rec
 
 - **Superficial Analysis:** A single-pass analysis is entirely dependent on the quality of its initial collection plan. If that plan is too broad or misses a key concept, the final report will be superficial and lack the necessary depth.
 - **Lack of Adaptability:** The current model cannot adapt its strategy mid-analysis. It cannot "realize" it's going down the wrong path or that a new, more important line of inquiry has emerged from the initial data.
+- **Inefficient Gap-Filling:** The current "Recursive Inquiry" axiom is a system-level, long-term learning mechanism. It is not designed for the immediate, tactical gap-filling required to answer a specific user query _right now_.
 
 **3. Proposed Solution:**
 This will be implemented as a new, advanced operational mode within the `persona_worker.py` script. It will be a sophisticated "cognitive loop" that wraps the existing Plan -> Harvest -> Synthesize cycle.
 
 - **A. Core Parameters:**
 
-  - `MAX_RECURSION_DEPTH = 3`: A static, integer failsafe.
-  - `NEW_KNOWLEDGE_THRESHOLD = 0.25`: A dynamic, quality-based exit condition.
+  - The `persona_worker` will have two new class-level constants that define the bounds of the recursion:
+    - `MAX_RECURSION_DEPTH = 3`: A static, integer failsafe. The initial analysis is depth 0, allowing for a maximum of two recursive drill-down passes.
+    - `NEW_KNOWLEDGE_THRESHOLD = 0.25`: A dynamic, quality-based exit condition. The loop will terminate if a new analysis pass is not at least 25% "semantically different" from the previous one.
 
 - **B. The Recursive Cognitive Loop:**
 
   - The `run_analysis_pipeline` method will be wrapped in a `while` loop that checks the two exit conditions.
-  - A `guiding_instruction` variable will be used, starting with the user query and then updated with the primary intelligence gap from the previous loop.
+  - A `guiding_instruction` variable will be created. In the first loop (depth 0), it will be the original user query. In all subsequent loops, it will be the highest-priority intelligence gap identified in the previous loop's analysis.
 
-- **C. Adaptive Tool Selection:**
+- **C. Adaptive Tool Selection (The Core Intelligence):**
 
   - The Collection Plan Generation prompt will be dynamically updated in each loop with the current `guiding_instruction`. This call will use the **`utility`** model tier for speed and cost-effectiveness (`llm_client.generate_text(..., model_type='utility')`).
 

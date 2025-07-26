@@ -1,12 +1,12 @@
-# Idea 01 (Revised): Implement the Definitive, Three-Tiered LLM Architecture
+# Idea 01: Implement the Definitive, Three-Tiered LLM Architecture
 
 **1. Concept:**
 Evolve the CHORUS engine to a definitive, three-tiered, multi-provider LLM architecture. This will be the foundational model for all AI-driven tasks, optimizing the system for cost, speed, and analytical quality by assigning every task to the appropriate model tier. This architecture, named "The Directorate Standard," reserves our most powerful and expensive reasoning model for the highest-leverage points of synthesis and critique.
 
 **2. Problem Solved:**
 
-- **Architectural Imprecision:** Our previous "Tiered Model" idea was a good start, but it lacked a precise definition of which tasks belong to which tier.
-- **Cost/Quality Imbalance:** A two-tier system forces a compromise, potentially using a costly model for a task that doesn't require it, or a weaker model for a task that demands elite reasoning.
+- **Architectural Imprecision:** A simple two-tier model lacks the granularity to handle the wide range of tasks in our system, from high-volume data extraction to high-stakes logical deconstruction.
+- **Cost/Quality Imbalance:** A two-tier system forces a compromise, either using a costly model for a simple task or a weaker model for a task that demands elite reasoning.
 - **Lack of a "Surge" Capability:** The system has no mechanism to deploy its most powerful reasoning capabilities at the most critical moments of judgment.
 
 **3. Proposed Solution:**
@@ -14,15 +14,15 @@ This will be implemented by a significant upgrade to the `LLMClient` and a forma
 
 - **A. The Three Tiers:**
 
-  - **Tier 1: Utility Model:** The workhorse for high-volume, low-complexity tasks.
+  - **Tier 1: Utility Model:** The workhorse for high-volume, low-complexity, and structured-data tasks.
     - **Designated Model (Example):** `xAI Grok-3 Mini`
-    - **Tasks:** Collection Plan Generation, "New Knowledge" Assessment, "Pre-Analysis Sieve," Analyst Peer Critiques.
-  - **Tier 2: Synthesis Model:** The standard for high-quality analysis and narrative creation.
+    - **Tasks:** Collection Plan Generation, "New Knowledge" Assessment, "Pre-Analysis Sieve," Analyst Peer Critiques, Surprise Detection, Query Canonicalization.
+  - **Tier 2: Synthesis Model:** The standard for high-quality analysis, nuanced reasoning, and narrative creation.
     - **Designated Model (Example):** `OpenAI o4-mini`
     - **Tasks:** All Analyst-level synthesis and revision passes.
-  - **Tier 3: Apex Model:** The elite reasoner for the highest-stakes judgments.
-    - **Designated Model (Example):** `Anthropic Claude 3 Opus` or `GPT-5`
-    - **Tasks:** All Director and Judge syntheses, and all Devil's Advocate critiques.
+  - **Tier 3: Apex Model:** The elite reasoner for the highest-stakes judgments, logical deconstruction, and meta-cognitive reflection.
+    - **Designated Model (Example):** `Anthropic Claude 3 Opus` or a future `GPT-5` class model.
+    - **Tasks:** All Director and Judge syntheses, all Devil's Advocate critiques, and the "Living World Model's" amendment proposals.
 
 - **B. Configuration (`.env`):**
 
@@ -39,10 +39,7 @@ This will be implemented by a significant upgrade to the `LLMClient` and a forma
   - The `IntelligentContextPacker` will be updated to be aware of the context limits for all three designated models.
 
 - **D. Worker Refactoring:**
-  - All worker scripts will be refactored to call the appropriate model tier for each specific task, as defined in the table above. For example:
-    - The `persona_worker` will call `model_type='utility'` for its planning and `model_type='synthesis'` for its final brief.
-    - The `director_worker` will call `model_type='apex'` for its synthesis.
-    - The `persona_worker` (in Devil's Advocate mode) will call `model_type='apex'` for its critique.
+  - All worker scripts will be refactored to call the appropriate model tier for each specific task, as defined in the table above.
 
 **4. Next Steps:**
 

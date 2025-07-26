@@ -15,7 +15,7 @@ This will be implemented by integrating a new "Red Team" stage into the `directo
 
   - After a `director_worker` completes its initial synthesis, it produces a `draft_directorate_summary`.
   - It will then spawn a "Devil's Advocate" task.
-  - The Devil's Advocate persona will perform its critique. This is a difficult, high-reasoning task that requires the best possible logical deconstruction. Therefore, this call will exclusively use the **`apex`** model tier (`llm_client.generate_text(..., model_type='apex')`).
+  - The Devil's Advocate persona will perform its critique. This is a difficult, high-reasoning task that requires the best possible logical deconstruction. Therefore, this call will exclusively use the **`apex`** model tier (`llm_client.generate_text(..., model_type='apex')`). The prompt will be: "You are an expert in logical fallacies and cognitive biases. Review the four analyst briefs and the director's attempt to synthesize them. Identify the single biggest logical flaw, unstated assumption, or point of groupthink in the director's draft summary."
 
 - **B. The Director's Revision:**
 

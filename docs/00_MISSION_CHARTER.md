@@ -49,6 +49,22 @@ graph TD
 
 ---
 
+## Future Vision: The Dataflow Architecture
+
+To achieve true scalability and resilience, CHORUS will evolve towards a dataflow-centric architecture, adhering to **Axiom 17 (Dataflow over Services)**. This design decouples data producers from consumers, allowing for independent scaling and fault tolerance.
+
+The core components of this future architecture are:
+
+-   **System of Record (MariaDB):** The primary OLTP database remains the authoritative source for core state (tasks, personas, etc.).
+-   **Change Data Capture (CDC):** A tool like Debezium will monitor the database's binary log, capturing every `INSERT`, `UPDATE`, and `DELETE` as an immutable event.
+-   **Event Bus (Apache Kafka):** All CDC events are published to a central, durable Kafka log. This log becomes the "single source of truth" for all state changes in the system, adhering to **Axiom 16 (Immutable Events)**.
+-   **Stream Processors (Faust/ksqlDB):** Lightweight services will subscribe to Kafka topics, transform the event streams, and populate derived data stores.
+-   **Derived Data Stores (Elasticsearch, etc.):** These are specialized, read-optimized systems built entirely from the Kafka event stream. They are treated as disposable and can be rebuilt at any time, adhering to **Axiom 15 (Derived State)**.
+
+This architecture allows CHORUS to move beyond simple request/response and build a robust, scalable, and auditable platform for large-scale OSINT analysis.
+
+---
+
 ## Quickstart Guide
 
 CHORUS is a complex system made simple through a unified Command Center. After cloning the repository and activating the Python virtual environment, all common tasks are handled by `make`.
@@ -80,7 +96,7 @@ This process uses the Command Center (`Makefile`) to set up the entire system wi
 # 1. Reset the database to a clean state
 make db-reset
 
-# 2. Populate the database with personas and harvester tasks
+# 2. Populate the database with harvester tasks
 make db-populate
 
 # 3. Download the AI embedding model (one-time setup)

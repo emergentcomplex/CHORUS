@@ -1,11 +1,19 @@
-# Filename: scripts/personas.py
+# Filename: chorus_engine/adapters/persistence/persona_repo.py (Corrected)
 #
 # 🔱 CHORUS Autonomous OSINT Engine
 #
-# This file is the central library for all AI persona definitions. It codifies
-# the worldviews and axioms that drive the adversarial analysis process.
+# This file implements the Repository pattern for accessing Persona entities.
+# It encapsulates the data source (currently a static dictionary) and provides
+# a clean interface for the application layer to retrieve persona data as
+# pure, domain-agnostic entities.
 
-PERSONAS = {
+from typing import Optional, Dict, List
+
+from chorus_engine.core.entities import Persona
+from chorus_engine.app.interfaces import PersonaRepositoryInterface
+
+# The raw data, which in a real system might come from a database or config file.
+_PERSONA_DATA = {
     "analyst_hawk": {
         "name": "Strategic Threat Analyst (Directorate Alpha)",
         "worldview": "Assumes a competitive, zero-sum world where national security is paramount. Interprets actions through the lens of capability and potential threat. Believes that the primary purpose of intelligence is to provide actionable warnings about emerging dangers.",
@@ -57,3 +65,26 @@ PERSONAS = {
         ]
     }
 }
+
+class PersonaRepository(PersonaRepositoryInterface):
+    """
+    A concrete repository for retrieving Persona entities.
+    This implementation uses a static dictionary as its data source.
+    """
+    def get_persona_by_id(self, persona_id: str) -> Optional[Persona]:
+        """
+        Retrieves a single persona by its unique ID.
+        """
+        persona_data = _PERSONA_DATA.get(persona_id)
+        if not persona_data:
+            return None
+        
+        return Persona(id=persona_id, **persona_data)
+
+    def get_all_personas(self) -> List[Persona]:
+        """
+        Retrieves all available personas.
+        """
+        return [
+            Persona(id=pid, **pdata) for pid, pdata in _PERSONA_DATA.items()
+        ]

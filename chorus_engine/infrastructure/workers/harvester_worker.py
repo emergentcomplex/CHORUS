@@ -1,31 +1,29 @@
-# Filename: scripts/harvester_worker.py (Definitive)
-#
-# 🔱 CHORUS Autonomous OSINT Engine
-#
-# Definitive version with anonymous worker IDs and correct logging configuration.
-
+# Filename: chorus_engine/infrastructure/workers/harvester_worker.py (Relocated)
 import argparse
 import json
 import logging
 import uuid
 import os
+import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
 
-from db_connector import get_db_connection
-from usajobs_harvester import USAJobsHarvester
-from usaspending_harvester import USASpendingHarvester
-from newsapi_harvester import NewsAPIHarvester
-from arxiv_harvester import ArxivHarvester
+
+from chorus_engine.adapters.persistence.mariadb_adapter import MariaDBAdapter
+from chorus_engine.adapters.harvesters.usajobs_harvester import USAJobsHarvester
+from chorus_engine.adapters.harvesters.usaspending_harvester import USASpendingHarvester
+from chorus_engine.adapters.harvesters.newsapi_harvester import NewsAPIHarvester
+from chorus_engine.adapters.harvesters.arxiv_harvester import ArxivHarvester
 
 # --- CONFIGURATION ---
-DATA_LAKE_DIR = Path(__file__).resolve().parent.parent / 'datalake'
-# We will configure logging inside main()
+# CORRECT: Path is now relative to the project root
+DATA_LAKE_DIR = Path(__file__).resolve().parents[2] / 'datalake'
+DATA_LAKE_DIR.mkdir(exist_ok=True)
 
-def update_task_status(task_id, status, worker_id=None):
-    """Updates the status of a task in the database."""
-    conn = get_db_connection()
+def update_task_status(db_adapter, task_id, status, worker_id=None):
+    """Updates the status of a task in the database using the adapter."""
+    conn = db_adapter._get_connection()
     if not conn: return
     try:
         with conn.cursor() as cursor:
@@ -40,25 +38,19 @@ def update_task_status(task_id, status, worker_id=None):
     except Exception as e:
         logging.error(f"Failed to update status for task {task_id}: {e}")
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def main(task_id):
-    # --- THE DEFINITIVE FIX ---
-    # 1. Generate the anonymous worker ID first.
     worker_id = f"harvester-{uuid.uuid4().hex[:12]}"
-    
-    # 2. Configure the root logger ONCE with the dynamic worker_id.
-    #    force=True ensures that if it was configured before, we can override it.
     logging.basicConfig(
         level=logging.INFO,
         format=f'%(asctime)s - %(levelname)s - [{worker_id}] - %(message)s',
         force=True
     )
-    # --- END FIX ---
-
     logging.info(f"Worker started for task_id: {task_id}")
 
-    conn = get_db_connection()
+    db_adapter = MariaDBAdapter()
+    conn = db_adapter._get_connection()
     if not conn:
         logging.error("Could not connect to the database. Aborting.")
         return
@@ -69,13 +61,13 @@ def main(task_id):
             cursor.execute("SELECT * FROM harvesting_tasks WHERE task_id = %s", (task_id,))
             task = cursor.fetchone()
     finally:
-        conn.close()
+        if conn: conn.close()
 
     if not task:
         logging.error(f"Task ID {task_id} not found. Aborting.")
         return
 
-    update_task_status(task_id, 'IN_PROGRESS', worker_id)
+    update_task_status(db_adapter, task_id, 'IN_PROGRESS', worker_id)
 
     try:
         script_name = task['script_name']
@@ -83,10 +75,8 @@ def main(task_id):
         
         result_list = []
         
-        # --- ROUTING LOGIC (Unchanged) ---
         if script_name == 'usajobs_live_search':
             auth_key = os.getenv("USAJOBS_API_KEY")
-            # Use the new, more secure harvester init
             harvester = USAJobsHarvester(auth_key=auth_key)
             results = list(harvester.get_live_jobs(search_params=params))
             result_list = [r.model_dump() for r in results]
@@ -117,7 +107,6 @@ def main(task_id):
         else:
             raise NotImplementedError(f"No handler implemented for script: {script_name}")
 
-        # --- Save results to Data Lake (Unchanged) ---
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         keyword_str = params.get('Keyword', 'no_keyword').replace(' ', '_').replace('"', '')
         keyword_str = "".join(c for c in keyword_str if c.isalnum() or c in ('_')).rstrip()
@@ -128,12 +117,12 @@ def main(task_id):
             json.dump(result_list, f, indent=2)
         
         logging.info(f"Successfully harvested {len(result_list)} records and saved to {filename}.")
-        update_task_status(task_id, 'COMPLETED', worker_id)
+        update_task_status(db_adapter, task_id, 'COMPLETED', worker_id)
 
     except Exception as e:
         logging.error(f"An unexpected error occurred while processing task {task_id}: {e}")
         logging.error(traceback.format_exc())
-        update_task_status(task_id, 'FAILED', worker_id)
+        update_task_status(db_adapter, task_id, 'FAILED', worker_id)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CHORUS Harvester Worker")

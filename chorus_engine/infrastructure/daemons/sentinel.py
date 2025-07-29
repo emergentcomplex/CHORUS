@@ -1,34 +1,31 @@
-# Filename: scripts/trident_sentinel.py (v2.0 - Pool Manager)
-#
-# 🔱 CHORUS Autonomous OSINT Engine
-#
-# v2.0: Upgrades the Sentinel to a true worker pool manager. It now
-#       respects the SENTINEL_WORKERS limit, preventing the "thundering herd"
-#       problem and ensuring stable operation under heavy load.
+# --- BOOTSTRAP ---
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+# --- END BOOTSTRAP ---
+
+# Filename: chorus_engine/infrastructure/daemons/sentinel.py (Self-Contained)
+
 
 import subprocess
 import time
 import os
+import logging
 from datetime import datetime
-from db_connector import get_db_connection
 from dotenv import load_dotenv
 
-# --- CONFIGURATION ---
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
-# This now acts as a strict concurrency limit
-MAX_WORKERS = int(os.getenv("SENTINEL_WORKERS", 4))
-CHECK_INTERVAL_SECONDS = 20 # Check more frequently
+from chorus_engine.adapters.persistence.mariadb_adapter import MariaDBAdapter
 
-def get_due_tasks(limit):
-    """
-    Finds tasks that are due to be run, up to the specified limit.
-    It prioritizes IDLE tasks to ensure new work is picked up.
-    """
-    conn = get_db_connection()
+# ... (rest of the file is unchanged) ...
+load_dotenv()
+MAX_WORKERS = int(os.getenv("SENTINEL_WORKERS", 4))
+CHECK_INTERVAL_SECONDS = 20
+
+def get_due_tasks(db_adapter, limit):
+    conn = db_adapter._get_connection()
     if not conn: return []
     try:
         with conn.cursor(dictionary=True) as cursor:
-            # Prioritize IDLE tasks, but also pick up failed tasks for retry
             sql = """
                 SELECT * FROM harvesting_tasks 
                 WHERE status IN ('IDLE', 'FAILED')
@@ -38,52 +35,50 @@ def get_due_tasks(limit):
             cursor.execute(sql, (limit,))
             return cursor.fetchall()
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def main():
-    """The main loop for the Sentinel daemon."""
-    worker_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "harvester_worker.py")
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - [Sentinel] - %(message)s')
+    
+    worker_script_path = os.path.join(os.path.dirname(__file__), "..", "workers", "harvester_worker.py")
     active_workers = []
+    
+    db_adapter = MariaDBAdapter()
 
-    print("--- CHORUS Sentinel (v2.0 - Pool Manager) Initialized ---")
-    print(f"--- Max Concurrent Harvesters: {MAX_WORKERS} ---")
+    logging.info("--- CHORUS Sentinel (v3.1 - Corrected Path) Initialized ---")
+    logging.info(f"--- Max Concurrent Harvesters: {MAX_WORKERS} ---")
 
     while True:
-        print(f"\n[{datetime.now()}] [Sentinel] Waking up to check for work...")
+        logging.info("Waking up to check for work...")
         
-        # 1. Clean up completed workers from the pool
         active_workers = [p for p in active_workers if p.poll() is None]
         
-        # 2. Check if there are available slots in the worker pool
         available_slots = MAX_WORKERS - len(active_workers)
-        print(f"[Sentinel] Pool Status: {len(active_workers)} active, {available_slots} available.")
+        logging.info(f"Pool Status: {len(active_workers)} active, {available_slots} available.")
 
         if available_slots > 0:
-            # 3. Fetch due tasks to fill the available slots
-            tasks_to_run = get_due_tasks(limit=available_slots)
+            tasks_to_run = get_due_tasks(db_adapter, limit=available_slots)
             
             if not tasks_to_run:
-                print("[Sentinel] No due tasks found. Sleeping...")
+                logging.info("No due tasks found. Sleeping...")
             else:
-                print(f"[Sentinel] Found {len(tasks_to_run)} tasks to run. Filling available slots...")
+                logging.info(f"Found {len(tasks_to_run)} tasks to run. Filling available slots...")
                 for task in tasks_to_run:
                     task_id = task['task_id']
-                    print(f"[Sentinel] Launching worker for task_id {task_id} ({task['script_name']})")
+                    logging.info(f"Launching worker for task_id {task_id} ({task['script_name']})")
                     
-                    # Launch the worker process
                     process = subprocess.Popen(["python3", worker_script_path, "--task-id", str(task_id)])
                     active_workers.append(process)
                     
-                    # Immediately mark the task as IN_PROGRESS so it's not picked up again
-                    conn = get_db_connection()
+                    conn = db_adapter._get_connection()
                     try:
                         with conn.cursor() as cursor:
                             cursor.execute("UPDATE harvesting_tasks SET status = 'IN_PROGRESS', last_attempt = NOW() WHERE task_id = %s", (task_id,))
                         conn.commit()
                     finally:
-                        conn.close()
+                        if conn: conn.close()
         else:
-            print("[Sentinel] Worker pool is full. Monitoring active workers...")
+            logging.info("Worker pool is full. Monitoring active workers...")
 
         time.sleep(CHECK_INTERVAL_SECONDS)
 

@@ -1,29 +1,36 @@
 # Filename: requirements.txt
-google-genai
+# Core Application & Web
 flask
 htmx-flask
+pydantic
+python-dotenv
+mariadb
+
+# LLM & AI
+google-generativeai
+openai
+xai-sdk
+sentence-transformers
+numpy
+
+# Utilities
 tqdm
 markdown
 httpx
 Pillow
 tiktoken
-sentence-transformers
-numpy
 pypandoc
-pytest
-python-dotenv
 PyPDF2
-pdoc
 beautifulsoup4
 lxml
 watchdog
 psutil
-openai
-xai-sdk
-mariadb
-google-cloud-bigquery
-google-auth
-pandas
-db-dtypes
-dotenv
-pydantic
+
+# Testing & Docs
+pytest
+pytest-mock
+pdoc
+
+# Data Pipeline (Future)
+kafka-python
+confluent-kafka

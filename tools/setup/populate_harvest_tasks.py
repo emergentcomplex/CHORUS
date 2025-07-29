@@ -1,55 +1,49 @@
-# Filename: scripts/populate_harvest_tasks.py
-# A one-time script to populate the intelligent harvesting_tasks table.
+# Filename: tools/setup/populate_harvest_tasks.py (Definitive)
+# A script to populate the harvesting_tasks table with tasks that
+# our current set of harvesters can actually handle.
 
-from db_connector import get_db_connection
+from chorus_engine.adapters.persistence.mariadb_adapter import MariaDBAdapter
 import json
 
-# The complete blueprint for our seven-source data lake
+# The blueprint for our *implemented* harvesters.
 HARVESTING_BLUEPRINT = {
-    "scrape_reference_library_advanced.py": {
-        "is_dynamic": False, "interval": 9999, "keywords": None
+    "usajobs_live_search": {
+        "keywords": {"Keyword": "TS/SCI"}
     },
-    "scrape_geopolitical.py": {
-        "is_dynamic": True, "interval": 72, "keywords": None
+    "usaspending_search": {
+        "keywords": {"Keyword": "defense research"}
     },
-    "scrape_academic.py": {
-        "is_dynamic": True, "interval": 72, "keywords": None
+    "newsapi_search": {
+        "keywords": {"Keyword": "DARPA"}
     },
-    "scrape_contracts.py": {
-        "is_dynamic": True, "interval": 24, "keywords": ["defense", "research"]
-    },
-    "scrape_jobs.py": {
-        "is_dynamic": True, "interval": 24, "keywords": ["TS/SCI", "cleared"]
-    },
-    "scrape_news.py": {
-        "is_dynamic": True, "interval": 12, "keywords": ["DARPA", "military tech"]
-    },
-    "scrape_gdelt.py": {
-        "is_dynamic": True, "interval": 12, "keywords": ["DARPA", "geopolitics"]
+    "arxiv_search": {
+        "keywords": {"Keyword": "quantum computing"}
     }
 }
 
 def main():
     """Populates the harvesting_tasks table with the blueprint."""
-    print("[*] Populating the intelligent harvesting task queue with all 7 sources...")
-    conn = get_db_connection()
+    print("[*] Populating the harvesting task queue with implemented harvesters...")
+    db_adapter = MariaDBAdapter()
+    conn = db_adapter._get_connection()
     if not conn:
         print("[!] Could not connect to the database. Aborting.")
         return
         
     cursor = conn.cursor()
     
+    # Clean up old tasks for a clean slate.
+    cursor.execute("DELETE FROM harvesting_tasks")
+    
     for script, config in HARVESTING_BLUEPRINT.items():
+        # is_dynamic and interval are no longer relevant for this setup script.
+        # All tasks are inserted as IDLE, ready to be run by the sentinel.
         sql = """
-            INSERT INTO harvesting_tasks (script_name, is_dynamic, scrape_interval_hours, associated_keywords) 
-            VALUES (%s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE 
-                is_dynamic=VALUES(is_dynamic), 
-                scrape_interval_hours=VALUES(scrape_interval_hours), 
-                associated_keywords=VALUES(associated_keywords);
+            INSERT INTO harvesting_tasks (script_name, associated_keywords, status) 
+            VALUES (%s, %s, 'IDLE')
         """
         keywords_json = json.dumps(config['keywords']) if config['keywords'] else None
-        cursor.execute(sql, (script, config['is_dynamic'], config['interval'], keywords_json))
+        cursor.execute(sql, (script, keywords_json))
     
     conn.commit()
     cursor.close()
@@ -57,4 +51,6 @@ def main():
     print(f"[+] Successfully populated {len(HARVESTING_BLUEPRINT)} tasks into the database.")
 
 if __name__ == "__main__":
+    from chorus_engine.config import setup_path
+    setup_path()
     main()

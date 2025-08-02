@@ -118,9 +118,9 @@ graph LR
     subgraph "Fast Loop (95% of workflow)"
         style FastLoop fill:#1e293b,stroke:#334155
         subgraph FastLoop [ ]
-            Dev -- "1. `make run`" --> C[Running Containers]
+            Dev -- "1 `make run`" --> C[Running Containers]
             Editor -.-> C
-            Dev -- "2. `make test-fast`" --> T1(Fast Tests)
+            Dev -- "2 `make test-fast`" --> T1(Fast Tests)
             T1 -- "Asserts against" --> C
         end
     end

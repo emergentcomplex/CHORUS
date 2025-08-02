@@ -65,21 +65,23 @@ class LiveJobSearchResult(BaseModel):
 # --- Harvester Class ---
 
 class USAJobsHarvester:
-    def __init__(self, auth_key: str, user_agent: str = "CHORUS-OSINT-Engine/1.0"): # <-- MODIFIED
+    def __init__(self, auth_key: str):
         self.api_host = "data.usajobs.gov"
-        if not auth_key: # <-- MODIFIED: Only the auth_key is strictly required now
+        user_agent = os.getenv("USAJOBS_USER_AGENT", "CHORUS-OSINT-Engine/1.0")
+        
+        if not auth_key:
             raise ValueError("USAJOBS Auth-Key cannot be empty.")
 
         self.auth_headers = {
             'Host': self.api_host,
-            'User-Agent': user_agent, # Use the generic agent
+            'User-Agent': user_agent,
             'Authorization-Key': auth_key
         }
         self.public_headers = {
             'Host': self.api_host,
-            'User-Agent': user_agent # Use the generic agent
+            'User-Agent': user_agent
         }
-        logging.info("USAJobsHarvester initialized.")
+        logging.info(f"USAJobsHarvester initialized with User-Agent: {user_agent}")
 
     def _make_request(self, endpoint, headers, params=None):
         """Internal helper for making requests and handling basic errors."""
@@ -186,35 +188,3 @@ class USAJobsHarvester:
                 time.sleep(1)
             else:
                 break
-
-# --- Example Usage (for testing during development) ---
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-
-    try:
-        from dotenv import load_dotenv
-        from pathlib import Path
-        env_path = Path(__file__).resolve().parent.parent / '.env'
-        load_dotenv(dotenv_path=env_path)
-        USAJOBS_EMAIL = os.getenv("USAJOBS_EMAIL")
-        USAJOBS_API_KEY = os.getenv("USAJOBS_API_KEY")
-    except ImportError:
-        logging.warning("python-dotenv not found. Please set environment variables manually for testing.")
-        USAJOBS_EMAIL = None
-        USAJOBS_API_KEY = None
-
-    if USAJOBS_EMAIL and USAJOBS_API_KEY:
-        harvester = USAJobsHarvester(user_agent=USAJOBS_EMAIL, auth_key=USAJOBS_API_KEY)
-        
-        print("\n--- Testing get_live_jobs (IMPLEMENTED) ---")
-        live_jobs_generator = harvester.get_live_jobs(search_params={'Keyword': 'Cybersecurity'})
-        
-        print("Fetching first 5 live jobs for 'Cybersecurity'...")
-        for i, job in enumerate(live_jobs_generator):
-            if i >= 5:
-                break
-            print(f"\n--- Live Job {i+1} ---")
-            print(job.model_dump_json(indent=2))
-            
-    else:
-        logging.error("Could not run test. USAJOBS_EMAIL and USAJOBS_API_KEY not found in environment.")

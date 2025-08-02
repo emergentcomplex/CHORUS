@@ -8,66 +8,48 @@
 
 **CHORUS** is not a search engine; it is a judgment engine. It is a fully autonomous, self-healing, and evolving intelligence platform designed to fuse disparate, open-source data verticals into high-fidelity, actionable insights.
 
-The system was born from a simple observation: when a government research program proves its worth, it doesn't die—it "graduates" into the classified world, leaving behind a faint echo in the public record. CHORUS is designed to detect these echoes by correlating the silence in one dataset with the sudden chatter in others.
+## System Architecture: The Dataflow Engine
 
-By simulating the structured, multi-layered, and adversarial analysis of a real-world intelligence agency, CHORUS moves beyond data retrieval into the realm of automated strategic judgment.
-
-## Core Features
-
-- **Autonomous & Self-Healing:** Built on a service-oriented architecture, the system runs 24/7, survives reboots, and automatically manages its own data and analysis queues.
-- **Evolving Data Lake:** A **Sentinel** daemon perpetually and intelligently refreshes a multi-source data lake.
-- **The Triumvirate Council:** A three-tiered council of AI personas (Analysts, Directors, and a Judge) debates and challenges findings to prevent groupthink and ensure intellectual rigor.
-- **Verifiable Attribution:** All claims are linked to their source with clickable citations.
-- **Dual-Format Export:** Generate final intelligence products as either a portable static HTML website or a professional, archival-quality PDF.
-
----
-
-## System Architecture
-
-The **Sentinel** daemon perpetually harvests data, the **Launcher** daemon perpetually analyzes it, and the Analyst commands the process through the C2 Dashboard.
-
-### The Triumvirate Council Workflow
-
-A user query triggers a hierarchical cascade of analysis, ensuring conclusions are rigorously tested from multiple, competing viewpoints before being finalized.
+CHORUS is a data-intensive application built on the principles of the "Unbundled Database." It uses a collection of specialized, containerized services that communicate via an immutable event log (Redpanda, a Kafka-compatible stream). This architecture ensures scalability, resilience, and evolvability.
 
 ```mermaid
 graph TD
-    subgraph "The Triumvirate Council"
-        A[User Query] --> B{Tier 3: Judge Task};
-        B --> C1{Tier 2: Director Task};
-        C1 --> D1{Tier 1: Analyst Task};
-        D1 -- RAG --> E((Data Lake));
-        D1 --> R1[Analyst Brief];
-        R1 --> C1;
-        C1 --> S1[Directorate Summary];
-        S1 --> B;
-        B --> F["Final CHORUS Report"];
+    subgraph "User Interaction & Write Path"
+        A[Web UI] -- Writes (e.g., New Task) --> D{PostgreSQL (System of Record)};
     end
 
-    style E fill:#431407,stroke:#e11d48,color:#fff
+    subgraph "The System's Nervous System (The Unified Log)"
+        style L fill:#27272a,stroke:#a1a1aa,color:#fff
+        D -- Change Data Capture --> E[Debezium];
+        E -- Immutable Events --> L[Redpanda/Kafka Topic: task_queue];
+    end
+
+    subgraph "Asynchronous Processing & Derived Data"
+        style P fill:#1e3a8a,stroke:#60a5fa,color:#fff
+        style S fill:#431407,stroke:#e11d48,color:#fff
+        L -- Consumes Events --> P[Stream Processor (chorus-stream-processor)];
+        P -- Materializes State --> S[Redis Cache (Fast Read Store)];
+    end
+
+    subgraph "Read & Analysis Path"
+        S -- Fast Dashboard Queries --> A;
+        D -- Deep Analysis & RAG --> G[Analysis Daemons (chorus-launcher)];
+    end
+
+    style D fill:#047857,stroke:#34d399,color:#fff
 ```
-
----
-
-## Future Vision: The Dataflow Architecture
-
-To achieve true scalability and resilience, CHORUS will evolve towards a dataflow-centric architecture, adhering to **Axiom 17 (Dataflow over Services)**. This design decouples data producers from consumers, allowing for independent scaling and fault tolerance.
-
-The core components of this future architecture are:
-
--   **System of Record (MariaDB):** The primary OLTP database remains the authoritative source for core state (tasks, personas, etc.).
--   **Change Data Capture (CDC):** A tool like Debezium will monitor the database's binary log, capturing every `INSERT`, `UPDATE`, and `DELETE` as an immutable event.
--   **Event Bus (Apache Kafka):** All CDC events are published to a central, durable Kafka log. This log becomes the "single source of truth" for all state changes in the system, adhering to **Axiom 16 (Immutable Events)**.
--   **Stream Processors (Faust/ksqlDB):** Lightweight services will subscribe to Kafka topics, transform the event streams, and populate derived data stores.
--   **Derived Data Stores (Elasticsearch, etc.):** These are specialized, read-optimized systems built entirely from the Kafka event stream. They are treated as disposable and can be rebuilt at any time, adhering to **Axiom 15 (Derived State)**.
-
-This architecture allows CHORUS to move beyond simple request/response and build a robust, scalable, and auditable platform for large-scale OSINT analysis.
 
 ---
 
 ## Quickstart Guide
 
-CHORUS is a complex system made simple through a unified Command Center. After cloning the repository and activating the Python virtual environment, all common tasks are handled by `make`.
+This guide provides the definitive steps to set up and run the entire CHORUS system locally using `make` and Docker.
+
+### Prerequisites
+
+- **Git:** For cloning the repository.
+- **Docker & Docker Compose:** For running the entire containerized environment.
+- **An IDE:** For editing code on your host machine.
 
 ### 1. Initial Setup
 
@@ -76,48 +58,33 @@ CHORUS is a complex system made simple through a unified Command Center. After c
 git clone <your-repo-url>
 cd CHORUS
 
-# Create and activate a Python virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install all dependencies
-pip install -r requirements.txt
-
-# Configure your environment
+# Create your personal environment file from the template
 cp .env.example .env
-nano .env # <-- Add your API keys and DB credentials
+
+# Open .env with your editor and add your GOOGLE_API_KEY
+# nano .env
 ```
 
-### 2. The Data-First Build Process
+### 2. Build and Run the System
 
-This process uses the Command Center (`Makefile`) to set up the entire system with a few simple commands.
+This single command builds the Docker images (a one-time slow operation) and starts all services in development mode.
 
 ```bash
-# 1. Reset the database to a clean state
-make db-reset
 
-# 2. Populate the database with harvester tasks
-make db-populate
-
-# 3. Download the AI embedding model (one-time setup)
-make download-model
-
-# 4. Run the full DARPA data ingestion pipeline
-# (Requires raw .txt files in data/darpa/)
-make ingest-darpa
+# This command will stop, build, and start the entire stack.
+make rebuild
 ```
 
-### 3. Launch the System
+Subsequent starts can use the faster `make run` command.
+
+### 3. Access the System
+
+- **CHORUS C2 UI:** [http://localhost:5001](http://localhost:5001)
+- **Redpanda Console (Kafka UI):** [http://localhost:8080](http://localhost:8080)
+
+### 4. Shut Down the System
 
 ```bash
-# Start all services (UI, Sentinel, Launcher) in the background
-make run
-
-# Monitor the logs of the running daemons
-make logs
-
-# Stop all services
+# Stop and remove all running containers and volumes.
 make stop
 ```
-
-For more detailed contribution guidelines and the full architectural blueprint, please see the other documents in the `/docs` directory.

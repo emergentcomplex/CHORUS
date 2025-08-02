@@ -31,7 +31,7 @@
                         {% else %} bg-red-500 text-red-900 {% endif %}">
                         {{ task.status }}
                     </span></td>
-                    <td class="p-2 text-gray-400">{{ task.created_at.strftime('%Y-%m-%d %H:%M') if task.created_at else 'N/A' }}</td>
+                    <td class="p-2 text-gray-400">{{ task.created_at_dt.strftime('%Y-%m-%d %H:%M') if task.created_at_dt else 'N/A' }}</td>
                     <td class="p-2 text-gray-500 font-mono text-xs">{{ task.worker_id or 'N/A' }}</td>
                 </tr>
                 {% else %}

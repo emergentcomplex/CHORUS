@@ -1,0 +1,23 @@
+services:
+  chorus-base-dev: &chorus-base-dev
+    build:
+      target: builder
+    image: chorus-app-builder:latest
+    volumes:
+      - .:/app
+
+  chorus-web:
+    <<: *chorus-base-dev
+    command: ["uv", "run", "gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "--reload", "chorus_engine.infrastructure.web.web_ui:app"]
+
+  chorus-launcher:
+    <<: *chorus-base-dev
+
+  chorus-sentinel:
+    <<: *chorus-base-dev
+
+  chorus-stream-processor:
+    <<: *chorus-base-dev
+
+  chorus-tester:
+    <<: *chorus-base-dev

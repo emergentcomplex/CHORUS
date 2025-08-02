@@ -1,0 +1,35 @@
+[project]
+name = "chorus"
+version = "1.0.0"
+dependencies = [
+    "anyio",
+    "blinker",
+    "docker",
+    "flask",
+    "flask-htmx",
+    "google-generativeai",
+    "gunicorn",
+    "htmx-flask",
+    "kafka-python>=2.0.2",
+    "psycopg2-binary",
+    "markdown",
+    "numpy",
+    "openai",
+    "prometheus-client",
+    "prometheus-flask-exporter",
+    "pydantic",
+    "pytest",
+    "pytest-mock",
+    "python-dotenv",
+    "PyYAML>=6.0",
+    "redis",
+    "requests",
+    "sentence-transformers",
+    "torch",
+    "tqdm",
+    "xai-sdk"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

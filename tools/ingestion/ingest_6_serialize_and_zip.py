@@ -1,26 +1,28 @@
-# Filename: scripts/compress_5_serialize_and_zip.py
+# Filename: tools/ingestion/ingest_6_serialize_and_zip.py
 #
 # "Finalize" Phase: The final storage optimization step.
 # 1. Reads the token-efficient `_factored.dsv` file.
 # 2. Serializes its contents into a compact binary format.
 # 3. Compresses the final binary file using Gzip for maximum storage efficiency.
 #
-# Input: ../data/darpa/DARPA_Semantic_Vectors_factored.dsv
-# Output: ../data/darpa/DARPA_Semantic_Vectors.bin.gz
+# Input: data/darpa/DARPA_Semantic_Vectors_factored.dsv
+# Output: data/darpa/DARPA_Semantic_Vectors.bin.gz
 
 import os
 import json
 import struct
 import gzip
 import shutil
+from pathlib import Path
 from tqdm import tqdm
 
 # --- CONFIGURATION ---
-BASE_DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data', 'darpa')
-FACTORED_DSV_PATH = os.path.join(BASE_DATA_DIR, "DARPA_Semantic_Vectors_factored.dsv")
-ORIGINAL_DSV_PATH = os.path.join(BASE_DATA_DIR, "DARPA_Semantic_Vectors.dsv") # For final comparison
-BINARY_PATH = os.path.join(BASE_DATA_DIR, "DARPA_Semantic_Vectors.bin") # Temporary file
-FINAL_COMPRESSED_PATH = os.path.join(BASE_DATA_DIR, "DARPA_Semantic_Vectors.bin.gz")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+BASE_DATA_DIR = PROJECT_ROOT / 'data' / 'darpa'
+FACTORED_DSV_PATH = BASE_DATA_DIR / "DARPA_Semantic_Vectors_factored.dsv"
+ORIGINAL_DSV_PATH = BASE_DATA_DIR / "DARPA_Semantic_Vectors.dsv" # For final comparison
+BINARY_PATH = BASE_DATA_DIR / "DARPA_Semantic_Vectors.bin" # Temporary file
+FINAL_COMPRESSED_PATH = BASE_DATA_DIR / "DARPA_Semantic_Vectors.bin.gz"
 
 # Binary format constants
 MAGIC_NUMBER = b'DSV_FAC' # Magic number for the new factored format
@@ -34,9 +36,9 @@ def main():
     """
     Main function to execute the serialization and compression.
     """
-    print("--- Starting Compression Stage 5: Final Serialization & Gzip ---")
-    if not os.path.exists(FACTORED_DSV_PATH):
-        print(f"Error: Factored input file not found at {FACTORED_DSV_PATH}. Please run script 4 first.")
+    print("--- Starting Ingestion Stage 6: Final Serialization & Gzip ---")
+    if not FACTORED_DSV_PATH.exists():
+        print(f"Error: Factored input file not found at {FACTORED_DSV_PATH}. Please run script 5 first.")
         return
 
     # --- 1. Read all sections from the factored DSV ---
@@ -101,8 +103,6 @@ def main():
                 header_id = int(header_id_str[1:]) # Convert "H123" to 123
                 
                 indices = triplet_str.split(';')
-                # For simplicity, we take the first index if multiple are comma-separated.
-                # A more complex format would be needed for full multi-index support.
                 action_idx = int(indices[0].split(',')[0]) if indices[0] else 65535
                 object_idx = int(indices[1]) if indices[1] else 65535
                 attr_idx = int(indices[2].split(',')[0]) if indices[2] else 65535
@@ -123,8 +123,8 @@ def main():
         shutil.copyfileobj(f_in, f_out)
     
     # --- 4. Final Verification ---
-    original_size = os.path.getsize(ORIGINAL_DSV_PATH)
-    final_size = os.path.getsize(FINAL_COMPRESSED_PATH)
+    original_size = ORIGINAL_DSV_PATH.stat().st_size
+    final_size = FINAL_COMPRESSED_PATH.stat().st_size
     reduction_ratio = original_size / final_size if final_size > 0 else float('inf')
 
     print("\n--- FINAL STORAGE VERIFICATION ---")

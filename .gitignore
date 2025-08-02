@@ -9,19 +9,12 @@ data/
 datalake/
 exports/
 models/
-scripts/ai_generated_keywords.json
-scripts/experiment_results/
-scripts/query_state/
-scripts/diagnostics/
 CONTEXT_FOR_AI.txt
+docs_build/
 
 # Logs & Artifacts
+logs/
 *.log
-*.txt
-*.json
-*.xml
-*.pdf
-*.gz
 
 # Credentials - CRITICAL
 gcp_credentials.json
@@ -30,3 +23,11 @@ gcp_credentials.json
 # OS / Editor specific
 .DS_Store
 .vscode/
+chorus.egg-info/
+.env*
+.env.bak
+.env-threaded
+.env*
+.env.bak
+.env-threaded
+*.egg-info/

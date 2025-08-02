@@ -4,36 +4,60 @@ Thank you for your interest in contributing to the CHORUS project. To maintain t
 
 ## The Guiding Principles
 
-Before making any changes, you must familiarize yourself with the two foundational documents of this project, both located in this `/docs` directory:
+Before making any changes, you must familiarize yourself with the three foundational documents of this project, all located in this `/docs` directory:
 
 1.  **The Mission Charter (`./00_MISSION_CHARTER.md`):** This document outlines the high-level mission, features, and setup instructions for the project. Ensure any proposed change aligns with this mission.
 
-2.  **The Constitution (`./01_CONSTITUTION.md`):** This is the canonical source of truth for the system's design. It contains the **22 Axioms of CHORUS Development**, the Triumvirate architecture, and the quantitative quality targets we are working towards. **All contributions will be judged against the principles in this document.**
+2.  **The Constitution (`./01_CONSTITUTION.md`):** This is the canonical source of truth for the system's design. It contains the **50 Axioms of CHORUS Development**. All contributions will be judged against the principles in this document.
 
-## The Development Workflow
+3.  **The System SLOs (`./03_SYSTEM_SLOS.md`):** This document defines the explicit performance and reliability targets for the system. All code must be written with the goal of meeting or exceeding these objectives.
 
-This project is developed in partnership with a generative AI assistant. To ensure consistency, all development sessions **must** be bootstrapped using the official Genesis Prompt.
+## The Development Praxis
 
-### Starting a New Development Session
+Our development process is designed to fulfill **Axiom 42: Deliberate Velocity**. We have gone well, so that we may now go fast. The `Makefile` provides two distinct, purpose-built workflows: a **Fast Loop** for rapid, iterative development, and a **Verification Workflow** for ensuring correctness.
 
-1.  **Generate the Context:** From the project's root directory, run the context generation script:
+### I. The Fast Loop (Your 95% Workflow)
 
-    ```bash
-    ./tools/generate_context.sh
-    ```
+This is the workflow for all day-to-day coding. It is designed for an instant feedback loop.
 
-    This will create a file named `CONTEXT_FOR_AI.txt` in the project root.
+**To start your work session:**
+```bash
+# Starts all services in the background with your local code mounted.
+make run
+```
 
-2.  **Start a New Conversation:** Open a new conversation with the designated LLM.
+**To test your code as you work:**
+```bash
+# Run the full suite of tests against the ALREADY RUNNING system.
+# This is your primary, fast-feedback command.
+make test-fast
+```
 
-3.  **Provide the Genesis Context:** Copy the _entire contents_ of `CONTEXT_FOR_AI.txt` and paste it as the very first prompt in the new conversation.
+**To observe the system:**
+```bash
+# Tails the aggregated logs from all running services in real-time.
+make logs
+```
 
-4.  **Await Confirmation:** The AI should respond with: _"Understood. The CHORUS Genesis context is loaded. I am ready to proceed."_
+**To end your work session:**
+```bash
+# Stops and removes all running containers and volumes.
+make stop
+```
 
-### Proposing Changes
+### II. The Slow Loop (The Rebuild Path)
 
-For any architectural changes, you must follow the **Amendment Process** outlined in Part 8 of the Constitution. This involves creating a formal proposal within your pull request using our automated script:
+You only need this workflow when you change the foundational environment itself (e.g., editing `pyproject.toml` or the `Dockerfile`).
 
 ```bash
-./tools/propose_amendment.sh
+# Stops the stack, rebuilds the base Docker image, and restarts in dev mode.
+make rebuild
 ```
+
+### III. The Verification Workflow (For CI/CD)
+
+This is the single, atomic command that a continuous integration server must use. It is slow, hermetic, and guarantees correctness from a clean slate.
+
+```bash
+# Builds, starts, sets up, tests, and tears down the entire system.
+make test```

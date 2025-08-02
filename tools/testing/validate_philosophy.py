@@ -24,7 +24,8 @@ from dotenv import load_dotenv
 # Suppress noisy logs from HTTPX clients used by SDKs
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
-CONSTITUTION_PATH = "docs/01_CONSTITUTION.md"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CONSTITUTION_PATH = PROJECT_ROOT / "docs/01_CONSTITUTION.md"
 
 # The council of judges. We use fast, cost-effective models suitable for this task.
 JUDGE_COUNCIL = {
@@ -36,8 +37,13 @@ JUDGE_COUNCIL = {
 def get_changed_files_content() -> str:
     """Gets the content of all changed Python files in the current branch against main."""
     try:
-        merge_base = subprocess.check_output(['git', 'merge-base', 'origin/main', 'HEAD'], text=True).strip()
-        changed_files_list = subprocess.check_output(['git', 'diff', '--name-only', merge_base, 'HEAD', '--', '*.py'], text=True).strip().split('\n')
+        # Use 'main...HEAD' to compare the tip of the current branch to the common ancestor with main.
+        # This is more robust for local topic branches.
+        changed_files_list = subprocess.check_output(
+            ['git', 'diff', '--name-only', 'main...HEAD', '--', '*.py'],
+            text=True,
+            stderr=subprocess.PIPE
+        ).strip().split('\n')
         
         changed_files = [f for f in changed_files_list if f and os.path.exists(f)]
 
@@ -53,8 +59,8 @@ def get_changed_files_content() -> str:
             content.append("\n\n")
         
         return "".join(content)
-    except subprocess.CalledProcessError:
-        print("Warning: Could not determine changed files via git. Auditing all project files as a fallback.", file=sys.stderr)
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: Could not determine changed files via git (is 'main' branch available?). Error: {e.stderr}", file=sys.stderr)
         return "Error: Could not determine changed files."
 
 def get_llm_judgment(judge_name: str, client: any, model_name: str, prompt: str) -> dict:
@@ -87,7 +93,7 @@ def main():
     print("--- 🔱 CHORUS Philosophical Alignment Audit (Production) ---")
     
     # 1. Initialize Clients
-    load_dotenv()
+    load_dotenv(dotenv_path=PROJECT_ROOT / '.env')
     clients = {}
     try:
         clients["google"] = genai.GenerativeModel(JUDGE_COUNCIL["Gemini-Flash"]["model"])
@@ -176,5 +182,7 @@ def main():
         sys.exit(0)
 
 if __name__ == "__main__":
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    # Correctly add the project root to the Python path
+    # to ensure that imports work regardless of execution directory.
+    sys.path.insert(0, str(PROJECT_ROOT))
     main()

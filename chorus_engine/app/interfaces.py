@@ -1,10 +1,9 @@
-# Filename: chorus_engine/app/interfaces.py (Corrected)
+# Filename: chorus_engine/app/interfaces.py (With Pre-flight Check)
 #
 # 🔱 CHORUS Autonomous OSINT Engine
 #
 # This file defines the abstract interfaces (ports) that the application layer
-# uses to communicate with external services (adapters). The core application
-# logic depends only on these contracts, not on their concrete implementations.
+# uses to communicate with external services (adapters).
 
 import abc
 from typing import List, Optional, Dict, Any
@@ -14,6 +13,14 @@ from chorus_engine.core.entities import AnalysisTask, AnalysisReport, HarvesterT
 
 class LLMInterface(abc.ABC):
     """An abstract interface for interacting with a Large Language Model."""
+
+    @abc.abstractmethod
+    def is_configured(self) -> bool:
+        """
+        A fast, local check to see if the adapter has the necessary
+        credentials/configuration to perform its function.
+        """
+        pass
 
     @abc.abstractmethod
     def instruct(self, prompt: str, model_name: str) -> Optional[str]:
@@ -49,6 +56,11 @@ class DatabaseInterface(abc.ABC):
     An abstract interface for the primary application database, handling
     task management and state persistence.
     """
+
+    @abc.abstractmethod
+    def get_available_harvesters(self) -> List[str]:
+        """Retrieves a list of unique harvester script names from the tasks table."""
+        pass
 
     @abc.abstractmethod
     def claim_analysis_task(self, worker_id: str) -> Optional[AnalysisTask]:

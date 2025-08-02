@@ -1,4 +1,4 @@
-# Filename: chorus_engine/adapters/llm/gemini_adapter.py (API Corrected)
+# Filename: chorus_engine/adapters/llm/gemini_adapter.py (Definitively Corrected)
 #
 # 🔱 CHORUS Autonomous OSINT Engine
 #
@@ -7,58 +7,63 @@
 import os
 import time
 import logging
+import random
 from typing import Optional
 
 import google.generativeai as genai
-from google.generativeai import types
-from dotenv import load_dotenv
+from google.api_core import exceptions as google_exceptions
+# THE DEFINITIVE FIX: Do not import load_dotenv here.
 
 from chorus_engine.app.interfaces import LLMInterface
+
+log = logging.getLogger(__name__)
 
 class GeminiAdapter(LLMInterface):
     """A concrete adapter for the Google Gemini LLM."""
 
     def __init__(self):
-        """Initializes the Gemini client."""
-        load_dotenv()
+        """Initializes the Gemini client and retry configuration."""
+        # This adapter no longer loads the environment. It depends on the
+        # application entry point to have already done so.
+        self._is_configured = False
         api_key = os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            raise ValueError("GOOGLE_API_KEY not found in environment variables.")
         
-        try:
-            # The client is configured once for the application instance.
-            genai.configure(api_key=api_key)
-            logging.info("GeminiAdapter initialized successfully.")
-        except Exception as e:
-            logging.error(f"Failed to initialize Gemini client: {e}")
-            raise
+        if not api_key:
+            log.warning("GOOGLE_API_KEY not found. GeminiAdapter will be non-functional.")
+        else:
+            try:
+                genai.configure(api_key=api_key)
+                self._is_configured = True
+                log.info("GeminiAdapter initialized and configured successfully.")
+            except Exception as e:
+                log.error(f"Failed to configure Gemini client: {e}")
 
-    def instruct(self, prompt: str, model_name: str, attempt: int = 1, max_retries: int = 3) -> Optional[str]:
-        """
-        Sends a prompt to the specified Gemini model and returns the text response.
-        Implements an exponential backoff retry mechanism.
-        """
-        if attempt > max_retries:
-            logging.error(f"LLM call failed after {max_retries} attempts.")
+        self.max_retries = int(os.getenv("LLM_MAX_RETRIES", 5))
+        self.base_backoff = float(os.getenv("LLM_BASE_BACKOFF", 2.0))
+
+    def is_configured(self) -> bool:
+        return self._is_configured
+
+    def instruct(self, prompt: str, model_name: str) -> Optional[str]:
+        if not self.is_configured():
+            log.error("LLM call failed: Adapter is not configured. Check API key.")
             return None
 
-        logging.info(f"Sending prompt to model '{model_name}' (Attempt {attempt}/{max_retries})...")
-        try:
-            # DEFINITIVE FIX: Instantiate the model directly and call generate_content.
-            model = genai.GenerativeModel(model_name)
-            
-            generation_config = types.GenerationConfig(
-                temperature=0.0, 
-                top_p=1.0, 
-                max_output_tokens=8192
-            )
-            response = model.generate_content(
-                contents=prompt, 
-                generation_config=generation_config
-            )
-            return response.text
-        except Exception as e:
-            wait_time = 5 * (2 ** (attempt - 1))
-            logging.warning(f"LLM call failed on attempt {attempt}: {e}. Retrying in {wait_time} seconds...")
-            time.sleep(wait_time)
-            return self.instruct(prompt, model_name, attempt + 1, max_retries)
+        for attempt in range(self.max_retries):
+            try:
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content(contents=prompt)
+                return response.text
+            except (google_exceptions.ResourceExhausted, 
+                    google_exceptions.ServiceUnavailable) as e:
+                if attempt < self.max_retries - 1:
+                    delay = self.base_backoff * (2 ** attempt) + random.uniform(0, 1)
+                    log.warning(f"LLM call failed with retryable error: {e}. Retrying in {delay:.2f} seconds...")
+                    time.sleep(delay)
+                else:
+                    log.error(f"LLM call failed after {self.max_retries} attempts. Final error: {e}")
+                    return None
+            except Exception as e:
+                log.error(f"LLM call failed with a non-retryable error: {e}", exc_info=True)
+                return None
+        return None

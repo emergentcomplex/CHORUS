@@ -1,0 +1,37 @@
+# This file prevents local development artifacts, secrets, and unnecessary
+# files from being sent to the Docker daemon, resulting in faster builds
+# and smaller, more secure images.
+
+# Version control
+.git
+.gitignore
+
+# Docker artifacts
+.dockerignore
+Dockerfile
+docker-compose.yml
+docker-compose.dev.yml
+docker-compose.test.yml
+
+# Python virtual environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+chorus.egg-info/
+
+# Local configuration and secrets
+.env
+*.env.*
+CONTEXT_FOR_AI.txt
+
+# Documentation and IDE settings
+docs/
+docs_build/
+.vscode/
+
+# OS-specific files
+.DS_Store

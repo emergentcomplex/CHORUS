@@ -1,11 +1,12 @@
-# Filename: scripts/ab_test_judger.py (v5.2 - Archiving)
+# Filename: tools/testing/ab_test_judger.py
 #
 # 🔱 CHORUS Autonomous OSINT Engine
 #
-# v5.2: The definitive archiving version. Saves the output of both
-#       Report A and Report B to text files for manual review.
+# A/B testing framework to quantitatively compare the output of the full
+# CHORUS pipeline against a naive baseline.
 
 import os
+import sys
 import json
 import time
 import subprocess
@@ -16,21 +17,22 @@ from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 import numpy as np
 
-import google.generativeai as genai
+# Ensure the project root is on the path to find adapters
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from chorus_engine.adapters.persistence.mariadb_adapter import MariaDBAdapter
+
+import google.genai as genai
 from openai import OpenAI
 from xai_sdk import Client as XAI_Client
-from xai_sdk.chat import system as xai_system, user as xai_user
 from dotenv import load_dotenv
-from db_connector import get_db_connection
 
 # --- CONFIGURATION ---
-load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / '.env')
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(dotenv_path=PROJECT_ROOT / '.env')
 USER_QUERY = "Investigate the intersection of DARPA funding, corporate hiring, public news, and academic research for Quantum Computing."
-FACTORED_DSV_PATH = Path(__file__).resolve().parent.parent / 'data' / 'darpa' / 'DARPA_Semantic_Vectors_factored.dsv'
-SCRIPTS_DIR = Path(__file__).resolve().parent
-# --- NEW: REPORT OUTPUT FILES ---
-REPORT_A_OUTPUT_FILE = Path(__file__).resolve().parent.parent / "TEST_A_BASELINE_REPORT.txt"
-REPORT_B_OUTPUT_FILE = Path(__file__).resolve().parent.parent / "TEST_B_CHORUS_REPORT.txt"
+FACTORED_DSV_PATH = PROJECT_ROOT / 'data' / 'darpa' / 'DARPA_Semantic_Vectors_factored.dsv'
+REPORT_A_OUTPUT_FILE = PROJECT_ROOT / "TEST_A_BASELINE_REPORT.txt"
+REPORT_B_OUTPUT_FILE = PROJECT_ROOT / "TEST_B_CHORUS_REPORT.txt"
 
 
 # --- LLM Client Setup ---
@@ -38,11 +40,12 @@ try:
     genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
     OPENAI_CLIENT = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     XAI_CLIENT = XAI_Client(api_key=os.getenv("XAI_API_KEY"))
-    GEMINI_JUDGE = genai.GenerativeModel("gemini-2.5-pro")
+    GEMINI_JUDGE = genai.GenerativeModel("gemini-1.5-pro")
 except Exception as e:
     print(f"FATAL: Could not initialize all LLM clients. Please check your API keys. Error: {e}")
-    exit(1)
+    sys.exit(1)
 
+db_adapter = MariaDBAdapter()
 
 # --- TEST A & B (Async versions) ---
 async def run_test_a():
@@ -85,24 +88,32 @@ async def run_test_b():
     query_hash = hashlib.md5(json.dumps(query_data, sort_keys=True).encode()).hexdigest()
 
     print(f"[TASK B] Resetting and queueing task with hash: {query_hash}")
-    conn = get_db_connection()
+    conn = db_adapter._get_connection()
     try:
         with conn.cursor() as cursor:
+            cursor.execute("DELETE FROM task_progress WHERE query_hash = %s", (query_hash,))
+            cursor.execute("DELETE FROM query_state WHERE query_hash = %s", (query_hash,))
             cursor.execute("DELETE FROM task_queue WHERE query_hash = %s", (query_hash,))
             cursor.execute("INSERT INTO task_queue (user_query, query_hash, status) VALUES (%s, %s, 'PENDING')", (json.dumps(query_data), query_hash))
         conn.commit()
     finally:
-        conn.close()
+        if conn: conn.close()
 
     print("[TASK B] Launching CHORUS daemons...")
-    sentinel_proc = await asyncio.create_subprocess_exec("python3", SCRIPTS_DIR / "trident_sentinel.py", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    launcher_proc = await asyncio.create_subprocess_exec("python3", SCRIPTS_DIR / "trident_launcher.py", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    sentinel_proc = await asyncio.create_subprocess_exec(
+        sys.executable, "-m", "chorus_engine.infrastructure.daemons.sentinel",
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    launcher_proc = await asyncio.create_subprocess_exec(
+        sys.executable, "-m", "chorus_engine.infrastructure.daemons.launcher",
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
 
     print("[TASK B] Monitoring task progress...")
     final_result = None
     start_time = time.time()
     while time.time() - start_time < 900:
-        conn = get_db_connection()
+        conn = db_adapter._get_connection()
         try:
             with conn.cursor(dictionary=True) as cursor:
                 cursor.execute("SELECT status, state_json FROM task_queue LEFT JOIN query_state USING(query_hash) WHERE query_hash = %s", (query_hash,))
@@ -117,7 +128,7 @@ async def run_test_b():
                     final_result = {"error": f"CHORUS pipeline failed:\n---\n{error_info}\n---"}
                     break
         finally:
-            conn.close()
+            if conn: conn.close()
         await asyncio.sleep(15)
 
     print("[TASK B] Shutting down CHORUS daemons...")
@@ -129,9 +140,11 @@ async def run_test_b():
     else:
         return {"error": "CHORUS method timed out after 15 minutes."}
 
-# --- THE DEFINITIVE JUDGER ---
-def get_llm_judgment(judge_name, model, dossier):
+def get_llm_judgment(judge_name, model_details, dossier):
     """Generic function to call a specific LLM judge."""
+    provider = model_details['provider']
+    model_name = model_details['model']
+    client = model_details['client']
     
     judging_prompt = f"""
     You are an impartial, expert intelligence analysis evaluator on a council of judges. Your task is to provide a quantitative score for two intelligence reports (Report A, Report B) based on a user's query.
@@ -167,19 +180,16 @@ def get_llm_judgment(judge_name, model, dossier):
     """
     
     try:
-        if judge_name == "Gemini":
+        if provider == "google":
             config = genai.types.GenerationConfig(response_mime_type="application/json")
-            response = model.generate_content(judging_prompt, generation_config=config)
+            response = client.generate_content(judging_prompt, generation_config=config)
             return json.loads(response.text)
-        elif judge_name == "OpenAI":
-            response = model.chat.completions.create(model="gpt-4o", messages=[{"role": "system", "content": judging_prompt}], response_format={"type": "json_object"})
+        elif provider == "openai":
+            response = client.chat.completions.create(model=model_name, messages=[{"role": "system", "content": judging_prompt}], response_format={"type": "json_object"})
             return json.loads(response.choices[0].message.content)
-        elif judge_name == "Grok":
-            chat = model.chat.create(model="grok-4")
-            chat.append(xai_system("You are a JSON-outputting evaluation bot."))
-            chat.append(xai_user(judging_prompt))
-            response = chat.sample()
-            return json.loads(response.content)
+        elif provider == "xai":
+            response = client.chat.create(model=model_name, messages=[{"role": "user", "content": judging_prompt}], json_mode=True)
+            return json.loads(response.choices[0].message.content)
     except Exception as e:
         print(f"[JUDGER] Call to {judge_name} failed: {e}")
         return None
@@ -192,14 +202,14 @@ def run_adjudication_council(report_a, report_b):
     
     dossier = {"report_a": report_a, "report_b": report_b}
     judges = {
-        "Gemini": GEMINI_JUDGE,
-        "OpenAI": OPENAI_CLIENT,
-        "Grok": XAI_CLIENT
+        "Gemini": {"provider": "google", "model": "gemini-1.5-pro", "client": GEMINI_JUDGE},
+        "OpenAI": {"provider": "openai", "model": "gpt-4o", "client": OPENAI_CLIENT},
+        "Grok":   {"provider": "xai", "model": "llama3-70b", "client": XAI_CLIENT}
     }
     
     all_verdicts = {}
     with ThreadPoolExecutor(max_workers=3) as executor:
-        future_to_judge = {executor.submit(get_llm_judgment, name, model, dossier): name for name, model in judges.items()}
+        future_to_judge = {executor.submit(get_llm_judgment, name, details, dossier): name for name, details in judges.items()}
         for future in future_to_judge:
             judge_name = future_to_judge[future]
             try:
@@ -214,28 +224,24 @@ def run_adjudication_council(report_a, report_b):
     
     return all_verdicts
 
-# --- MAIN ASYNC ORCHESTRATOR ---
 async def main():
     """Main orchestration function."""
-    async with asyncio.TaskGroup() as tg:
-        print("--- Launching Test A and Test B asynchronously ---")
-        task_a = tg.create_task(run_test_a())
-        task_b = tg.create_task(run_test_b())
-
-    result_a = task_a.result()
-    result_b = task_b.result()
+    print("--- Launching Test A and Test B concurrently ---")
+    results = await asyncio.gather(
+        run_test_a(),
+        run_test_b()
+    )
+    result_a, result_b = results
 
     report_a_content = result_a.get('report', json.dumps(result_a.get('error', 'Test A produced no output.')))
     report_b_content_dict = result_b.get('report', {"error": "Test B produced no output."})
     
-    # Extract the raw text from the CHORUS report for the judger
     if isinstance(report_b_content_dict, str):
         try: report_b_content_dict = json.loads(report_b_content_dict)
         except json.JSONDecodeError: report_b_content_dict = {"error": "Could not parse CHORUS report JSON."}
     
     report_b_for_judger = report_b_content_dict.get('raw_text', json.dumps(report_b_content_dict))
 
-    # --- THE DEFINITIVE FIX: SAVE REPORTS TO DISK ---
     print("\n[*] Saving reports to disk for manual review...")
     with open(REPORT_A_OUTPUT_FILE, 'w', encoding='utf-8') as f:
         f.write(report_a_content)
@@ -291,7 +297,4 @@ async def main():
     print("\n" + "="*80)
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except AttributeError:
-        print("\nFATAL: This script requires Python 3.11+ for asyncio.TaskGroup.")
+    asyncio.run(main())

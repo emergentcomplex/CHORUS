@@ -1,4 +1,4 @@
-# Filename: scripts/ingest_1_map_dictionaries.py (FINAL, No-JSON)
+# Filename: tools/ingestion/ingest_1_map_dictionaries.py
 # "Map" Phase: Processes small text chunks and outputs terms to simple .txt files.
 
 import os
@@ -8,13 +8,16 @@ from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 from dotenv import load_dotenv
 import traceback
+from pathlib import Path
 
 # --- CONFIGURATION ---
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(dotenv_path=PROJECT_ROOT / '.env')
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-ERROR_LOG_FILE = "ingestion_errors_stage1.log"
-RAW_DATA_DIR = "../data/darpa/"
-CHUNK_OUTPUT_DIR = "../data/darpa/temp_dictionary_chunks"
+
+ERROR_LOG_FILE = PROJECT_ROOT / "logs/ingestion_errors_stage1.log"
+RAW_DATA_DIR = PROJECT_ROOT / "data/darpa/"
+CHUNK_OUTPUT_DIR = PROJECT_ROOT / "data/darpa/temp_dictionary_chunks"
 
 # --- NEW, PLAIN TEXT PROMPT ---
 EXTRACTION_PROMPT = """
@@ -35,7 +38,7 @@ def log_error(message):
 def call_gemini_api(prompt, context_data, attempt=1, max_retries=3):
     if attempt > max_retries: return None
     try:
-        model = genai.GenerativeModel("gemini-2.5-pro-latest")
+        model = genai.GenerativeModel("gemini-1.5-pro-latest")
         full_prompt = f"{prompt}\n\n[TEXT CHUNK TO ANALYZE START]\n{context_data}\n[TEXT CHUNK TO ANALYZE END]"
         response = model.generate_content(full_prompt)
         return response.text
@@ -53,8 +56,8 @@ def process_chunk(task_data):
     filename, chunk_index, chunk_content = task_data
     
     for concept_type in ["actions", "objects", "attributes"]:
-        output_path = os.path.join(CHUNK_OUTPUT_DIR, f"{filename}_chunk_{chunk_index}_{concept_type}.txt")
-        if os.path.exists(output_path): continue
+        output_path = CHUNK_OUTPUT_DIR / f"{filename}_chunk_{chunk_index}_{concept_type}.txt"
+        if output_path.exists(): continue
         
         prompt = EXTRACTION_PROMPT.format(concept_type=concept_type)
         response_str = call_gemini_api(prompt, chunk_content)
@@ -64,16 +67,16 @@ def process_chunk(task_data):
 
 def main():
     print("--- Starting Ingestion Stage 1: Mapping Dictionaries to Text Files ---")
-    if os.path.exists(ERROR_LOG_FILE): os.remove(ERROR_LOG_FILE)
-    os.makedirs(CHUNK_OUTPUT_DIR, exist_ok=True)
+    if ERROR_LOG_FILE.exists(): ERROR_LOG_FILE.unlink()
+    CHUNK_OUTPUT_DIR.mkdir(exist_ok=True)
     
-    all_files = sorted([f for f in os.listdir(RAW_DATA_DIR) if f.endswith(".txt")])
+    all_files = sorted([f for f in RAW_DATA_DIR.iterdir() if f.suffix == ".txt"])
     tasks = []
-    for filename in all_files:
-        with open(os.path.join(RAW_DATA_DIR, filename), 'r', encoding='utf-8') as f:
+    for file_path in all_files:
+        with open(file_path, 'r', encoding='utf-8') as f:
             source_text = f.read()
         for i, chunk in enumerate(chunk_text(source_text)):
-            tasks.append((os.path.splitext(filename)[0], i, chunk))
+            tasks.append((file_path.stem, i, chunk))
 
     print(f"Found {len(tasks)} chunks to process across 3 concept types.")
     with ThreadPoolExecutor(max_workers=15) as executor:

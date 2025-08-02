@@ -1,29 +1,30 @@
-# Filename: scripts/compress_4_factor_dsv.py
+# Filename: tools/ingestion/ingest_5_factor_dsv.py
 #
 # "Factor" Phase: This is the primary TOKEN REDUCTION step.
 # Reads the final DSV file, creates a dictionary of unique data headers,
 # and rewrites the data section using compact header IDs.
-# This version is for production and expects the input file to exist.
 #
-# Input: ../data/darpa/DARPA_Semantic_Vectors.dsv
-# Output: ../data/darpa/DARPA_Semantic_Vectors_factored.dsv
+# Input: data/darpa/DARPA_Semantic_Vectors.dsv
+# Output: data/darpa/DARPA_Semantic_Vectors_factored.dsv
 
 import os
+from pathlib import Path
 from collections import defaultdict
 from tqdm import tqdm
 
 # --- CONFIGURATION ---
-BASE_DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data', 'darpa')
-ORIGINAL_DSV_PATH = os.path.join(BASE_DATA_DIR, "DARPA_Semantic_Vectors.dsv")
-FACTORED_DSV_PATH = os.path.join(BASE_DATA_DIR, "DARPA_Semantic_Vectors_factored.dsv")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+BASE_DATA_DIR = PROJECT_ROOT / 'data' / 'darpa'
+ORIGINAL_DSV_PATH = BASE_DATA_DIR / "DARPA_Semantic_Vectors.dsv"
+FACTORED_DSV_PATH = BASE_DATA_DIR / "DARPA_Semantic_Vectors_factored.dsv"
 
 def main():
     """
     Main function to execute the factoring process.
     """
-    print("--- Starting Compression Stage 4: Factoring Data Headers for Token Reduction ---")
+    print("--- Starting Ingestion Stage 5: Factoring Data Headers for Token Reduction ---")
 
-    if not os.path.exists(ORIGINAL_DSV_PATH):
+    if not ORIGINAL_DSV_PATH.exists():
         print(f"Error: Input file not found at {ORIGINAL_DSV_PATH}. Please run the ingest pipeline first.")
         return
 
@@ -85,8 +86,8 @@ def main():
                 f_out.write(f"{header_id}|{triplet}\n")
 
     # --- Final Report ---
-    original_size = os.path.getsize(ORIGINAL_DSV_PATH)
-    factored_size = os.path.getsize(FACTORED_DSV_PATH)
+    original_size = ORIGINAL_DSV_PATH.stat().st_size
+    factored_size = FACTORED_DSV_PATH.stat().st_size
     reduction_percent = ((original_size - factored_size) / original_size) * 100
 
     print("\n--- TOKEN REDUCTION ANALYSIS ---")

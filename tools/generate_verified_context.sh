@@ -1,30 +1,41 @@
 #!/bin/bash
 #
-# 🔱 CHORUS Verified Context Generator (v1.0)
+# 🔱 CHORUS Verified Context Generator (v2.2 - Docs Excluded)
 #
 # This script generates a single, definitive context file for bootstrapping
-# an AI development session. It captures the complete, verifiable state of the
-# repository, including directory structure and all relevant file contents,
-# ensuring perfect state synchronization.
+# an AI development session. It is self-contained and can be run from any directory.
 
 set -e
 
-# --- Configuration ---
-OUTPUT_FILE="VERIFIED_CONTEXT.txt"
-EXCLUDE_PATTERNS=(
-    -path "./.git/*" \
-    -path "./venv/*" \
-    -path "./data/*" \
-    -path "./models/*" \
-    -path "./__pycache__/*" \
-    -name "*.pyc" \
-    -name "*.md" \
-    -name "*.sql" \
-    -name "*.bak" \
-    -name "*CONTEXT*.txt"
-)
+# Change to the directory containing the script, then go up one level.
+cd "$(dirname "$0")/.."
 
-echo "[*] Generating verified ground-truth context for CHORUS..."
+# --- Definitive Fix: Use a temporary file for output ---
+# This prevents the script from excluding its own output file.
+OUTPUT_FILE=$(mktemp)
+
+# Define patterns for `tree`'s -I flag
+TREE_EXCLUDE_PATTERN='venv|.git|datalake|models|__pycache__|*.pyc|*.md|*.sql|*CONTEXT*.txt|*.log|chorus.egg-info|docs_build'
+
+# Define patterns for the `find` command
+FIND_EXCLUDE_PATTERNS=(
+    -path './.git' -o \
+    -path './.venv' -o \
+    -path './chorus_engine/datalake' -o \
+    -path './models' -o \
+    -path './.pytest_cache' -o \
+    -path './__pycache__' -o \
+    -path './chorus.egg-info' -o \
+    -path './docs_build' -o \
+    -name '*.pyc' -o \
+    -name '*.md' -o \
+    -name '*.sql' -o \
+    -name '*.bak' -o \
+    -name '*.log' -o \
+    -name 'uv.lock' -o \
+    -name '.env' -o \
+    -name '*.txt' \
+)
 
 # --- Header ---
 echo "# 🔱 CHORUS Verifiable Codebase Context" > "$OUTPUT_FILE"
@@ -33,20 +44,19 @@ echo "# This context represents the complete ground truth of the repository." >>
 
 # --- Part 1: Directory Structure ---
 echo -e "\n\n--- PART 1: DIRECTORY STRUCTURE ---\n" >> "$OUTPUT_FILE"
-tree -I 'venv|.git|data|models|__pycache__|*.pyc|*.md|*.sql|*CONTEXT*.txt' >> "$OUTPUT_FILE"
+tree -I "$TREE_EXCLUDE_PATTERN" >> "$OUTPUT_FILE"
 
 # --- Part 2: File Contents ---
 echo -e "\n\n--- PART 2: FILE CONTENTS ---\n" >> "$OUTPUT_FILE"
 
-# Use find with -print0 and a while loop to handle all filenames safely.
-# The find command constructs an array of arguments for the exclusion patterns.
-find . -type f \( "${EXCLUDE_PATTERNS[@]}" \) -prune -o -print0 | while IFS= read -r -d $'\0' file; do
+find . \( "${FIND_EXCLUDE_PATTERNS[@]}" \) -prune -o -type f -print0 | while IFS= read -r -d $'\0' file; do
     if [ -f "$file" ]; then
         echo "--- Filename: ${file} ---" >> "$OUTPUT_FILE"
         cat "${file}" >> "$OUTPUT_FILE"
-        echo "" >> "$OUTPUT_FILE" # Add a newline for readability between files
+        echo "" >> "$OUTPUT_FILE"
     fi
 done
 
-echo "[✅] SUCCESS: Complete verified context generated in '$OUTPUT_FILE'."
-echo "[*] The ground truth of your repository has been captured."
+# --- Final Step: Output the name of the temporary file ---
+# The calling script will use this path to read the content.
+echo "$OUTPUT_FILE"

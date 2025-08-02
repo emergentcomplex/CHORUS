@@ -1,108 +1,134 @@
-# Filename: scripts/ingest_3_generate_dsv_data.py (FINAL, Corrected Version)
-# Final Stage: Processes raw documents chunk by chunk, uses the LLM to extract
-# semantic data in a simple text format, then parses and appends it to the final DSV file.
+# Filename: tools/ingestion/ingest_3_generate_dsv_data.py
 
 import json
 import os
 import re
 import time
 import google.generativeai as genai
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 from dotenv import load_dotenv
 import traceback
+from pathlib import Path
+import threading
 
 # --- CONFIGURATION ---
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(dotenv_path=PROJECT_ROOT / '.env')
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-ERROR_LOG_FILE = "ingestion_errors_stage3.log"
-RAW_DATA_DIR = "../data/darpa/"
-FINAL_DSV_PATH = "../data/darpa/DARPA_Semantic_Vectors.dsv"
 
-# --- THE FINAL, ROBUST PROMPT ---
+ERROR_LOG_FILE = PROJECT_ROOT / "logs/ingestion_errors_stage3.log"
+RAW_DATA_DIR = PROJECT_ROOT / "data/darpa/"
+FINAL_DSV_PATH = PROJECT_ROOT / "data/darpa/DARPA_Semantic_Vectors.dsv"
+CHUNK_SIZE_WORDS = 15000
+MAX_WORKERS = 10
+
 EXTRACTION_PROMPT = """
-You are an expert data extraction system. You will be given master dictionaries and a text chunk from a DoD budget document. Your task is to extract its structure and semantic content into a simple, line-based text format.
+You are an expert data extraction system. You will be given a text chunk from a DoD budget document. Your task is to extract all "Accomplishments" and "Plans" for each Program Element (PE).
 
-For EACH "R-2 Exhibit" you find, you MUST output the data using the following format:
+For EACH "R-2 Exhibit" you find, you MUST output the data using the following simple, line-based text format:
 PE_NUM: <The PE Number>
 PE_TITLE: <The PE Title>
 AP_YEAR: <The Fiscal Year of the Accomplishment/Plan>
 AP_TYPE: <"Accomplishments" or "Plans">
-AP_TRIPLET: <Action Term>; <Object Term>; <Attribute Term>
+AP_TEXT: <The full, verbatim text of the accomplishment or plan sentence.>
 
 CRITICAL DIRECTIVES:
 - Each piece of data MUST be on its own line, starting with the correct key.
-- For the AP_TRIPLET, you MUST use the exact terms found in the provided dictionaries.
-- Deconstruct sentences into their atomic parts for the triplets.
-- Filter out all boilerplate and summary tables.
+- Extract the AP_TEXT verbatim. Do not summarize or alter it.
 - If you find a new PE, start again with the PE_NUM key.
-- Your entire output must be ONLY this plain text format.
-
-[MASTER DICTIONARIES START]
-{dictionaries_text}
-[MASTER DICTIONARIES END]
+- Your entire output must be ONLY this plain text format. No commentary.
 """
 
+class DynamicDictionary:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.term_maps = {"actions": {}, "objects": {}, "attributes": {}}
+        self.next_indices = {"actions": 0, "objects": 0, "attributes": 0}
+
+    def load_initial(self, dsv_path):
+        print("  -> Loading initial dictionaries from DSV header...")
+        with self.lock:
+            with open(dsv_path, 'r', encoding='utf-8') as f:
+                in_dict_section = False
+                for line in f:
+                    if line.strip() == "[DICTIONARIES]":
+                        in_dict_section = True
+                        continue
+                    if line.strip() == "[DATA]":
+                        break
+                    if in_dict_section:
+                        try:
+                            d_type_char, d_idx_str, d_term = line.strip().split(':', 2)
+                            d_idx = int(d_idx_str)
+                            if d_type_char == 'A':
+                                self.term_maps["actions"][d_term] = d_idx
+                                self.next_indices["actions"] = max(self.next_indices["actions"], d_idx + 1)
+                            elif d_type_char == 'O':
+                                self.term_maps["objects"][d_term] = d_idx
+                                self.next_indices["objects"] = max(self.next_indices["objects"], d_idx + 1)
+                            elif d_type_char == 'T':
+                                self.term_maps["attributes"][d_term] = d_idx
+                                self.next_indices["attributes"] = max(self.next_indices["attributes"], d_idx + 1)
+                        except (ValueError, IndexError):
+                            continue
+        print(f"  -> Initial dictionaries loaded.")
+
+    def get_or_add_term(self, term, term_type):
+        with self.lock:
+            term = term.strip()
+            if not term: return None
+            if term not in self.term_maps[term_type]:
+                new_index = self.next_indices[term_type]
+                self.term_maps[term_type][term] = new_index
+                self.next_indices[term_type] += 1
+                return new_index
+            return self.term_maps[term_type][term]
+
+dynamic_dictionary = DynamicDictionary()
+
 def log_error(message):
-    """Appends a detailed error message to the log file."""
     with open(ERROR_LOG_FILE, 'a', encoding='utf-8') as f:
         f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}\n" + "-"*80 + "\n")
 
-def call_gemini_api(prompt, context_data, attempt=1, max_retries=3):
-    """Robust API call function."""
+def call_gemini_api(context_data, attempt=1, max_retries=3):
     if attempt > max_retries: return None
     try:
-        model = genai.GenerativeModel("gemini-2.5-pro-latest")
-        request_options = {"timeout": 400}
-        full_prompt = f"{prompt}\n\n[TEXT CHUNK TO ANALYZE START]\n{context_data}\n[TEXT CHUNK TO ANALYZE END]"
-        response = model.generate_content(full_prompt, request_options=request_options)
+        model = genai.GenerativeModel("gemini-1.5-pro-latest")
+        full_prompt = f"{EXTRACTION_PROMPT}\n\n[TEXT CHUNK TO ANALYZE START]\n{context_data}\n[TEXT CHUNK TO ANALYZE END]"
+        response = model.generate_content(full_prompt, request_options={"timeout": 400})
         return response.text
     except Exception as e:
         log_error(f"API call failed on attempt {attempt}. Error: {e}\nTraceback:\n{traceback.format_exc()}")
         time.sleep(5 * attempt)
-        return call_gemini_api(prompt, context_data, attempt + 1)
+        return call_gemini_api(context_data, attempt + 1)
 
-def chunk_text(text_content, chunk_size=50000):
-    """Splits the document into overlapping chunks."""
+def chunk_text(text_content, chunk_size=CHUNK_SIZE_WORDS):
     words = text_content.split()
-    chunks = []
-    for i in range(0, len(words), chunk_size - 500):
-        chunks.append(" ".join(words[i:i + chunk_size]))
-    return chunks # <-- THE MISSING RETURN STATEMENT
+    for i in range(0, len(words), chunk_size):
+        yield " ".join(words[i:i + chunk_size])
 
-def load_dictionaries_and_create_maps(dsv_path):
-    """Loads dictionaries from the DSV file and creates term-to-index maps."""
-    print("  -> Loading dictionaries from DSV header...")
-    actions, objects, attributes = [], [], []
-    with open(dsv_path, 'r', encoding='utf-8') as f:
-        in_dict_section = False
-        for line in f:
-            if line.strip() == "[DICTIONARIES]":
-                in_dict_section = True
-                continue
-            if line.strip() == "[DATA]":
+def text_to_triplet(text: str) -> str:
+    lower_text = text.lower()
+    action_idx, object_idx, attr_idx = "", "", ""
+    with dynamic_dictionary.lock:
+        for term, idx in dynamic_dictionary.term_maps["actions"].items():
+            if term.lower() in lower_text:
+                action_idx = str(idx)
                 break
-            if in_dict_section:
-                try:
-                    parts = line.strip().split(':', 2)
-                    if parts[0] == 'A': actions.append(parts[2])
-                    elif parts[0] == 'O': objects.append(parts[2])
-                    elif parts[0] == 'T': attributes.append(parts[2])
-                except IndexError:
-                    continue
-    
-    action_map = {term: i for i, term in enumerate(actions)}
-    object_map = {term: i for i, term in enumerate(objects)}
-    attribute_map = {term: i for i, term in enumerate(attributes)}
-    
-    print(f"  -> Dictionaries loaded. {len(actions)} actions, {len(objects)} objects, {len(attributes)} attributes.")
-    return {"actions": actions, "objects": objects, "attributes": attributes}, {"actions": action_map, "objects": object_map, "attributes": attribute_map}
+        for term, idx in dynamic_dictionary.term_maps["objects"].items():
+            if term.lower() in lower_text:
+                object_idx = str(idx)
+                break
+        for term, idx in dynamic_dictionary.term_maps["attributes"].items():
+            if term.lower() in lower_text:
+                attr_idx = str(idx)
+                break
+    return f"{action_idx};{object_idx};{attr_idx};"
 
-def process_and_append_chunk(task_data):
-    """Processes a chunk, converts it to DSV lines, and appends to the final file."""
-    prompt, chunk, year, maps = task_data
-    
-    response_text = call_gemini_api(prompt, chunk)
+def process_chunk(task_data):
+    chunk, year, temp_file_path = task_data
+    response_text = call_gemini_api(chunk)
     if not response_text: return
 
     dsv_lines_to_append = []
@@ -117,48 +143,70 @@ def process_and_append_chunk(task_data):
             elif key == "PE_TITLE": current_pe_title = value
             elif key == "AP_YEAR": current_ap_year = value
             elif key == "AP_TYPE": current_ap_type = value
-            elif key == "AP_TRIPLET":
-                parts = [p.strip() for p in value.split(';')]
-                if len(parts) == 3:
-                    action_idx = maps["actions"].get(parts[0], "")
-                    object_idx = maps["objects"].get(parts[1], "")
-                    attr_idx = maps["attributes"].get(parts[2], "")
-                    triplet_str = f"{action_idx};{object_idx};{attr_idx};"
-                    dsv_lines_to_append.append(f">>>|{current_pe_num}||{current_pe_title}|{year}|{current_ap_type}|{current_ap_year}|{triplet_str}\n")
+            elif key == "AP_TEXT":
+                triplet_str = text_to_triplet(value)
+                dsv_lines_to_append.append(f">>>|{current_pe_num}||{current_pe_title}|{year}|{current_ap_type}|{current_ap_year}|{triplet_str}\n")
         except ValueError:
             continue
 
     if dsv_lines_to_append:
-        with open(FINAL_DSV_PATH, 'a', encoding='utf-8') as f:
+        with open(temp_file_path, 'a', encoding='utf-8') as f:
             f.writelines(dsv_lines_to_append)
 
 def main():
-    print("\n--- Starting Ingestion Stage 3: Generating DSV Data ---")
-    if os.path.exists(ERROR_LOG_FILE): os.remove(ERROR_LOG_FILE)
+    print("\n--- Starting Ingestion Stage 3: Generating DSV Data (Refactored) ---")
+    if ERROR_LOG_FILE.exists(): ERROR_LOG_FILE.unlink()
 
-    dictionaries, maps = load_dictionaries_and_create_maps(FINAL_DSV_PATH)
-    dict_text = ""
-    for term in dictionaries["actions"]: dict_text += f"Action: {term}\n"
-    for term in dictionaries["objects"]: dict_text += f"Object: {term}\n"
-    for term in dictionaries["attributes"]: dict_text += f"Attribute: {term}\n"
+    dynamic_dictionary.load_initial(FINAL_DSV_PATH)
     
-    prompt_with_dicts = EXTRACTION_PROMPT.format(dictionaries_text=dict_text)
+    # Use a temporary file for intermediate data lines to avoid reading/writing the same file
+    TEMP_DATA_PATH = FINAL_DSV_PATH.with_suffix(".tmp_data")
+    if TEMP_DATA_PATH.exists(): TEMP_DATA_PATH.unlink()
 
-    all_files = sorted([f for f in os.listdir(RAW_DATA_DIR) if f.endswith(".txt")])
+    all_files = sorted([f for f in RAW_DATA_DIR.iterdir() if f.suffix == ".txt"])
     tasks = []
-    for filename in all_files:
-        year = os.path.splitext(filename)[0].replace("DARPA", "")
-        with open(os.path.join(RAW_DATA_DIR, filename), 'r', encoding='utf-8') as f:
+    for file_path in all_files:
+        year = file_path.stem.replace("DARPA", "")
+        with open(file_path, 'r', encoding='utf-8') as f:
             source_text = f.read()
         for chunk in chunk_text(source_text):
-            tasks.append((prompt_with_dicts, chunk, year, maps))
+            tasks.append((chunk, year, TEMP_DATA_PATH))
 
     print(f"Found {len(tasks)} total chunks to process for DSV data generation.")
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        list(tqdm(executor.map(process_and_append_chunk, tasks), total=len(tasks), desc="Generating DSV Data"))
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        list(tqdm(executor.map(process_chunk, tasks), total=len(tasks), desc="Generating DSV Data"))
 
-    print("\n✅ DSV data generation complete.")
-    # The final step of generating embeddings would now be run.
+    print("\nData generation complete. Rewriting final DSV with updated dictionaries...")
+
+    # --- Final Rewrite Phase ---
+    with open(FINAL_DSV_PATH, 'w', encoding='utf-8') as f_out:
+        # Write META Header
+        f_out.write("[META]\n")
+        f_out.write("FILE_TYPE: DARPA_Semantic_Vector\nVERSION: 1.1\n")
+        f_out.write("DESCRIPTION: A compressed, longitudinal semantic encoding of DARPA budget data.\n")
+        f_out.write("DICTIONARY_FORMAT: TYPE:INDEX:TERM (A=Action, O=Object, T=Attribute)\n")
+        f_out.write("DATA_FORMAT: HIERARCHY|PE_NUM|PROJ_NUM|INIT_TITLE|SRC_YEAR|AP_TYPE|AP_FY|TRIPLET\n")
+        f_out.write("TRIPLET_FORMAT: ActionIndices;ObjectIndex;AttributeIndices;PurposeObjectIndex\n\n")
+
+        # Write updated DICTIONARIES Section
+        f_out.write("[DICTIONARIES]\n")
+        with dynamic_dictionary.lock:
+            for term, idx in sorted(dynamic_dictionary.term_maps["actions"].items(), key=lambda item: item[1]):
+                f_out.write(f"A:{idx}:{term}\n")
+            for term, idx in sorted(dynamic_dictionary.term_maps["objects"].items(), key=lambda item: item[1]):
+                f_out.write(f"O:{idx}:{term}\n")
+            for term, idx in sorted(dynamic_dictionary.term_maps["attributes"].items(), key=lambda item: item[1]):
+                f_out.write(f"T:{idx}:{term}\n")
+        f_out.write("\n")
+
+        # Write DATA Section Header and content
+        f_out.write("[DATA]\n")
+        if TEMP_DATA_PATH.exists():
+            with open(TEMP_DATA_PATH, 'r', encoding='utf-8') as f_in:
+                f_out.write(f_in.read())
+            TEMP_DATA_PATH.unlink()
+
+    print("\n✅ DSV file rewritten with complete and consistent dictionaries.")
 
 if __name__ == "__main__":
     main()

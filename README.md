@@ -81,25 +81,25 @@ graph TD
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#3b82f6', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
 graph TD
     subgraph "Write Path (User Interaction)"
-        A["<i class='fa fa-desktop'></i> Web UI"] -- "1. INSERT task" --> D{"<i class='fa fa-database'></i> PostgreSQL (System of Record)"};
+        A["<i class='fa fa-desktop'></i> Web UI"] -- "1 INSERT task" --> D{"<i class='fa fa-database'></i> PostgreSQL (System of Record)"};
     end
 
     subgraph "The Unified Log (The System's Nervous System)"
         style L fill:#27272a,stroke:#a1a1aa,color:#fff
-        D -- "2. Change Data Capture" --> E["Debezium Connector"];
-        E -- "3. Immutable Event" --> L["<i class='fa fa-stream'></i> Redpanda Topic: task_queue"];
+        D -- "2 Change Data Capture" --> E["Debezium Connector"];
+        E -- "3 Immutable Event" --> L["<i class='fa fa-stream'></i> Redpanda Topic: task_queue"];
     end
 
     subgraph "Derived Data Path (Asynchronous Processing)"
         style P fill:#1e3a8a,stroke:#60a5fa,color:#fff
         style S fill:#431407,stroke:#e11d48,color:#fff
-        L -- "4. Consume Event" --> P["<i class='fa fa-cogs'></i> Stream Processor"];
-        P -- "5. Materialize View" --> S["<i class='fa fa-bolt'></i> Redis Cache (Fast Read Store)"];
+        L -- "4 Consume Event" --> P["<i class='fa fa-cogs'></i> Stream Processor"];
+        P -- "5 Materialize View" --> S["<i class='fa fa-bolt'></i> Redis Cache (Fast Read Store)"];
     end
 
     subgraph "Read & Analysis Path"
-        S -- "6a. Fast Dashboard Queries" --> A;
-        D -- "6b. Deep Analysis & RAG" --> G["<i class='fa fa-brain'></i> Analysis Daemons"];
+        S -- "6a Fast Dashboard Queries" --> A;
+        D -- "6b Deep Analysis & RAG" --> G["<i class='fa fa-brain'></i> Analysis Daemons"];
     end
 
     style D fill:#047857,stroke:#34d399,color:#fff

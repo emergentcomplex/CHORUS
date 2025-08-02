@@ -10,56 +10,161 @@
 
 ---
 
-## Overview
+## 1. Core Concepts & Architectural Views
 
-**CHORUS** is not a search engine; it is a judgment engine. It is a fully autonomous, self-healing, and evolving intelligence platform designed to fuse disparate, open-source data verticals into high-fidelity, actionable insights.
+The CHORUS engine is a complex system best understood by viewing it through three distinct architectural lenses:
 
-It operates on the principle that a secret program's graduation from the public record leaves behind a pattern of echoes: a budget line vanishes, a new job posting for a cleared physicist appears, a cluster of obscure academic papers creates a new hum in the noise. CHORUS is an observatory for these echoes.
+1.  **The Judgment Process:** The logical flow of how an AI council debates and synthesizes a query into a final verdict. This is the *why* of the system.
+2.  **The Dataflow Engine:** The physical infrastructure and data's journey through our containerized, event-driven services. This is the *how* of the system.
+3.  **The Development Praxis:** The workflow that developers use to build, verify, and maintain the system, governed by our `Makefile`. This is *how we trust* the system.
 
-The engine's final output is not a simple answer, but a verdict—a synthesized judgment forged from the structured, adversarial debate of competing AI personas, complete with every source and every dissenting note.
+The following diagrams illustrate each of these views.
 
-## System Architecture: The Dataflow Engine
+---
 
-CHORUS is a data-intensive application built on the principles of the "Unbundled Database." It uses a collection of specialized, containerized services that communicate via an immutable event log (Redpanda, a Kafka-compatible stream). This architecture ensures scalability, resilience, and evolvability.
+## 2. The Judgment Process: The Adversarial Council
+
+This diagram illustrates the logical flow of analysis. A user's query is not answered directly; it is subjected to a multi-tiered, adversarial debate between specialized AI personas.
 
 ```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#14b8a6', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
 graph TD
-    subgraph "User Interaction & Write Path"
-        A["Web UI"] -- "Writes (e.g., New Task)" --> D{"PostgreSQL (System of Record)"};
+    subgraph "Tier 0: The Query"
+        A[User Query]
     end
 
-    subgraph "The System's Nervous System (The Unified Log)"
+    subgraph "Tier 1: The Analyst Wing (Parallel Analysis)"
+        direction LR
+        style AnalystTier fill:#1e293b,stroke:#334155
+        
+        subgraph AnalystTier[ ]
+            P1["<i class='fa fa-user-secret'></i> Analyst Hawk"]
+            P2["<i class='fa fa-user-secret'></i> Analyst Dove"]
+            P3["<i class='fa fa-user-secret'></i> Analyst Skeptic"]
+            P4["<i class='fa fa-user-secret'></i> Analyst Futurist"]
+        end
+        
+        R1[Preliminary Report 1]
+        R2[Preliminary Report 2]
+        R3[Preliminary Report 3]
+        R4[Preliminary Report 4]
+        
+        P1 --> R1
+        P2 --> R2
+        P3 --> R3
+        P4 --> R4
+    end
+
+    subgraph "Tier 2: The Director's Synthesis"
+        style Director fill:#0f766e,stroke:#14b8a6
+        Director("<i class='fa fa-user-tie'></i> Director Alpha") --> Briefing{Director's Briefing}
+    end
+
+    subgraph "Tier 3: The Final Verdict"
+        style Judge fill:#be123c,stroke:#f43f5e
+        Judge("<i class='fa fa-gavel'></i> Judge Prime") --> Verdict([Final Verdict])
+    end
+
+    A --> AnalystTier
+    R1 & R2 & R3 & R4 --> Director
+    Briefing --> Judge
+
+    classDef persona fill:#083344,stroke:#0e7490,color:#e0f2fe
+    class P1,P2,P3,P4 persona;
+```
+
+---
+
+## 3. The Dataflow Engine: The Unbundled Database
+
+This diagram shows the physical infrastructure. It illustrates how data flows through our containerized services, from the initial write in the database to the final materialized views in the cache.
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#3b82f6', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
+graph TD
+    subgraph "Write Path (User Interaction)"
+        A["Web UI"] -- "1. INSERT task" --> D{"PostgreSQL (System of Record)"};
+    end
+
+    subgraph "The Unified Log (The System's Nervous System)"
         style L fill:#27272a,stroke:#a1a1aa,color:#fff
-        D -- "Change Data Capture" --> E["Debezium"];
-        E -- "Immutable Events" --> L["Redpanda/Kafka Topic: task_queue"];
+        D -- "2. Change Data Capture" --> E["Debezium Connector"];
+        E -- "3. Immutable Event" --> L["<i class='fa fa-stream'></i> Redpanda Topic: task_queue"];
     end
 
-    subgraph "Asynchronous Processing & Derived Data"
+    subgraph "Derived Data Path (Asynchronous Processing)"
         style P fill:#1e3a8a,stroke:#60a5fa,color:#fff
         style S fill:#431407,stroke:#e11d48,color:#fff
-        L -- "Consumes Events" --> P["Stream Processor (chorus-stream-processor)"];
-        P -- "Materializes State" --> S["Redis Cache (Fast Read Store)"];
+        L -- "4. Consume Event" --> P["<i class='fa fa-cogs'></i> Stream Processor"];
+        P -- "5. Materialize View" --> S["<i class='fa fa-bolt'></i> Redis Cache (Fast Read Store)"];
     end
 
     subgraph "Read & Analysis Path"
-        S -- "Fast Dashboard Queries" --> A;
-        D -- "Deep Analysis & RAG" --> G["Analysis Daemons (chorus-launcher)"];
+        S -- "6a. Fast Dashboard Queries" --> A;
+        D -- "6b. Deep Analysis & RAG" --> G["<i class='fa fa-brain'></i> Analysis Daemons"];
     end
 
     style D fill:#047857,stroke:#34d399,color:#fff
 ```
 
-## Technology Stack
+---
 
--   **Backend:** Python 3.12, Flask, Gunicorn
--   **Database:** PostgreSQL w/ pgvector (System of Record, Vector Store)
--   **Streaming:** Redpanda (Kafka-compatible event log), Debezium (Change Data Capture)
--   **In-Memory Store:** Redis (Derived Data Cache)
--   **Containerization:** Docker & Docker Compose
--   **Dependency Management:** `uv`
--   **Testing:** Pytest, Mocks
+## 4. The Development Praxis: The Dual-Mode Harness
 
-## Getting Started
+This diagram explains the `Makefile`-driven development workflow, which is central to our engineering philosophy. It separates the rapid, iterative "Fast Loop" from the slow, hermetic "Verification Loop."
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#d946ef', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
+graph LR
+    subgraph "Developer's Machine"
+        Dev(Developer) -- "Edits Code" --> Editor[<i class='fa fa-code'></i> IDE / Code Editor]
+    end
+
+    subgraph "Fast Loop (95% of workflow)"
+        style FastLoop fill:#1e293b,stroke:#334155
+        subgraph FastLoop [ ]
+            Dev -- "1. `make run`" --> C[Running Containers]
+            Editor -.-> C
+            Dev -- "2. `make test-fast`" --> T1(Fast Tests)
+            T1 -- "Asserts against" --> C
+        end
+    end
+    
+    subgraph "Slow Loop (On Dependency Change)"
+        style SlowLoop fill:#4a044e,stroke:#a21caf
+        subgraph SlowLoop [ ]
+            Dev -- "`make rebuild`" --> B(Build Image) --> C2[Restart Containers]
+        end
+    end
+
+    subgraph "Verification Loop (CI/CD)"
+        style VerificationLoop fill:#450a0a,stroke:#be123c
+        subgraph VerificationLoop [ ]
+            CI(CI/CD Server) -- "`make test`" --> T2(Hermetic Test Suite)
+        end
+    end
+```
+
+---
+
+## 5. The Systemic Learning Loop: The Path to Recursion
+
+This diagram illustrates the future-state goal of the CHORUS engine: to learn from its own judgments. This represents the highest level of abstraction and the system's capacity for recursion.
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#ca8a04', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
+graph TD
+    A[Analysis Pipeline] --> B{Final Verdict};
+    B --> C{User};
+    C -- "Provides Feedback" --> D["<i class='fa fa-thumbs-up'></i><i class='fa fa-thumbs-down'></i> Feedback Store"];
+    D --> E{Re-evaluation Trigger};
+    E -- "Refines Personas or Knowledge" --> F["<i class='fa fa-brain'></i> Persona Cognitive State"];
+    F -. "Influences Next Judgment" .-> A;
+```
+
+---
+
+## 6. Getting Started
 
 ### Prerequisites
 
@@ -105,36 +210,7 @@ Subsequent starts can use the faster `make run` command.
 make stop
 ```
 
-## Development Workflow
-
-The CHORUS project uses a `Makefile` to provide a streamlined, axiom-driven development process.
-
-### The Fast Loop (95% of your time)
-
-This workflow is optimized for a rapid, sub-second feedback loop while you are coding.
-
-```bash
-# 1. Start all services in the background.
-make run
-
-# 2. As you make code changes, run the fast test suite.
-# This runs against the already-running services.
-make test-fast
-
-# 3. View aggregated logs from all services.
-make logs
-```
-
-### The Verification Loop (For CI/CD)
-
-This is the single, atomic command that a continuous integration server must use. It is slow, hermetic, and guarantees correctness from a clean slate.
-
-```bash
-# Builds, starts, sets up, tests, and tears down the entire system.
-make test
-```
-
-## Contributing
+## 7. Contributing
 
 Contributions are welcome but must adhere to the project's foundational principles. All development is guided by a strict set of axioms designed to ensure quality, consistency, and architectural integrity.
 
@@ -142,6 +218,6 @@ Before contributing, please familiarize yourself with the canonical documents in
 1.  **`01_CONSTITUTION.md`**: The supreme law governing the system's design and non-verification principles.
 2.  **`04_VERIFICATION_COVENANT.md`**: The supreme law governing how we prove our work is correct.
 
-## License
+## 8. License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

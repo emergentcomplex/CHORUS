@@ -1,9 +1,7 @@
-cat > docs/01_CONSTITUTION.md << 'EOF'
-
 # 🔱 The CHORUS Constitution & Architectural Blueprint
 
-_Document Version: 5.2 (No-Cost Mandate)_
-_Last Updated: 2025-07-29_
+_Document Version: 6.0 (Post Re-Genesis)_
+_Last Updated: 2025-08-02_
 
 ---
 
@@ -23,7 +21,7 @@ _Last Updated: 2025-07-29_
 
 ## Part 2: The Axioms of CHORUS Development
 
-_This section codifies all 50 inviolable principles. All code and architectural decisions MUST adhere to these axioms._
+_This section codifies all 55 inviolable principles. All code and architectural decisions MUST adhere to these axioms._
 
 ### I. Foundational Axioms (The Bedrock)
 
@@ -100,4 +98,13 @@ _This section codifies all 50 inviolable principles. All code and architectural 
 48. **Axiom of Reversible Cognition:** All learning must be auditable, traceable, and reversible. Changes to a persona's cognitive state must be recorded in a versioned, transactional manner.
 49. **Axiom of Temporal Self-Awareness:** The system must be aware of its own cognitive state across time, enabling reproducibility, validation of changes, and forensic analysis.
 50. **Axiom of Systemic Learning:** The system must be a learning organization, capable of both tactical learning (filling knowledge gaps) and strategic learning (improving its own cognitive processes).
-    EOF
+
+### V. Metaphysical & Process Axioms (The Praxis)
+
+_These axioms were forged in the crucible of the "Great Dataflow Transformation" and govern the process of development itself._
+
+51. **Axiom of the Unified Environment:** All CHORUS processes—application services, utility scripts, and the test suite—MUST be executed within the canonical containerized environment. The host machine's only role is to orchestrate the containers. This axiom forbids the "Two Worlds" anti-pattern and ensures absolute reproducibility.
+52. **Axiom of the Dual-Mode Harness:** The development harness MUST provide two distinct, clearly-defined modes: a **Verification Mode** (`make test`) that is slow, hermetic, and guarantees correctness from a clean slate for CI/CD; and an **Iteration Mode** (`make run` + `make test-fast`) that is optimized for rapid, sub-second feedback for local developers.
+53. **Axiom of Canonical Simplicity:** The project's tooling and configuration MUST favor simple, explicit, and standard patterns over complex, "clever," or abstract solutions. All configuration shall be transparent and easily understood by a new developer.
+54. **Axiom of the Lean Artifact:** The production build process MUST create the leanest possible runtime artifact. It will use multi-stage builds to ensure that the final production image contains *only* the application source code and its direct runtime dependencies, and explicitly excludes all build tools, system utilities, and testing code.
+55. **Axiom of Hermetic Verification:** The primary verification target (`make test`) MUST be a self-contained, atomic operation. It is responsible for the entire lifecycle of its execution: building the environment, starting all services, running all setup scripts, executing the full test suite, and tearing down the environment. It shall have no dependencies on pre-existing state.

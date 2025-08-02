@@ -142,7 +142,7 @@ echo -e "\n\n---\n" >> "$OUTPUT_FILE"
 # --- 7. The Land (The Codebase) ---
 echo "### **PART 6: THE LAND (The Codebase)**" >> "$OUTPUT_FILE"
 TMP_CONTEXT_FILE=$(./tools/generate_verified_context.sh)
-# Exclude the header from the verified context script to avoid redundancy
-tail -n +4 "$TMP_CODE_CONTEXT_FILE" >> "$OUTPUT_FILE"
+# THE DEFINITIVE FIX: Use the correct variable name.
+tail -n +4 "$TMP_CONTEXT_FILE" >> "$OUTPUT_FILE"
 
 echo "[+] SUCCESS: Complete Re-Genesis context generated in '$OUTPUT_FILE'"

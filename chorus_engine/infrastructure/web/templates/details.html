@@ -1,3 +1,4 @@
+<!-- Filename: chorus_engine/infrastructure/web/templates/details.html -->
 {% extends "base.html" %}
 {% block content %}
 <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6 border border-gray-700">
@@ -7,9 +8,9 @@
             <h2 class="text-3xl mt-2 font-semibold text-gray-200">Analysis Session</h2>
             <p class="text-gray-400 font-mono text-sm">Session ID: {{ query_hash }}</p>
         </div>
+        <!-- THE DEFINITIVE FIX: Removed the non-existent 'export_report_pdf' endpoint -->
         <div class="flex items-center space-x-4">
-            <!-- The export buttons are now simplified and will be fully functional -->
-            <form action="{{ url_for('export_report_pdf', query_hash=query_hash) }}" method="post"><button type="submit" class="bg-purple-800 hover:bg-purple-900 text-white font-bold py-2 px-4 rounded-lg">Export PDF</button></form>
+            <!-- Placeholder for future actions -->
         </div>
     </div>
 </div>

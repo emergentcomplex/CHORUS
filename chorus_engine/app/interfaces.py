@@ -1,4 +1,4 @@
-# Filename: chorus_engine/app/interfaces.py (With Pre-flight Check)
+# Filename: chorus_engine/app/interfaces.py
 #
 # 🔱 CHORUS Autonomous OSINT Engine
 #
@@ -64,7 +64,37 @@ class DatabaseInterface(abc.ABC):
 
     @abc.abstractmethod
     def claim_analysis_task(self, worker_id: str) -> Optional[AnalysisTask]:
-        """Atomically claims a pending analysis task from the queue."""
+        """Atomically claims a task ready for the Analyst Tier."""
+        pass
+
+    @abc.abstractmethod
+    def claim_synthesis_task(self, worker_id: str) -> Optional[AnalysisTask]:
+        """Atomically claims a task ready for the Director or Judge Tiers."""
+        pass
+
+    @abc.abstractmethod
+    def get_analyst_reports(self, query_hash: str) -> List[Dict[str, Any]]:
+        """Retrieves all analyst reports for a given mission."""
+        pass
+
+    @abc.abstractmethod
+    def get_director_briefing(self, query_hash: str) -> Optional[Dict[str, Any]]:
+        """Retrieves the director's briefing for a given mission."""
+        pass
+
+    @abc.abstractmethod
+    def save_director_briefing(self, query_hash: str, briefing_text: str) -> None:
+        """Saves the director's synthesized briefing to the database."""
+        pass
+
+    @abc.abstractmethod
+    def update_task_status(self, query_hash: str, new_status: str) -> None:
+        """Updates the status of a task in the task_queue."""
+        pass
+
+    @abc.abstractmethod
+    def save_analyst_report(self, query_hash: str, persona_id: str, report_text: str) -> None:
+        """Saves a single analyst's report to the database."""
         pass
 
     @abc.abstractmethod

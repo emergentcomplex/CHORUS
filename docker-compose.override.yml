@@ -1,5 +1,5 @@
-# 🔱 CHORUS Development Overrides (Simple & Correct)
-# Overrides the base services for local development.
+# Filename: docker-compose.override.yml
+# 🔱 CHORUS Development Overrides (With Synthesis Daemon)
 services:
   chorus-web:
     build:
@@ -7,9 +7,27 @@ services:
     image: chorus-app-builder:latest
     volumes:
       - .:/app
-    command: ["uv", "run", "gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "--reload", "chorus_engine.infrastructure.web.web_ui:app"]
+    command:
+      [
+        "uv",
+        "run",
+        "gunicorn",
+        "--bind",
+        "0.0.0.0:5001",
+        "--workers",
+        "2",
+        "--reload",
+        "chorus_engine.infrastructure.web.web_ui:app",
+      ]
 
   chorus-launcher:
+    build:
+      target: builder
+    image: chorus-app-builder:latest
+    volumes:
+      - .:/app
+
+  chorus-synthesis-daemon:
     build:
       target: builder
     image: chorus-app-builder:latest

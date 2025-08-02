@@ -1,112 +1,135 @@
-# Filename: tests/unit/test_use_cases.py (Corrected)
+# Filename: tests/unit/test_use_cases.py
 #
 # 🔱 CHORUS Autonomous OSINT Engine
 #
-# Unit tests for the Application layer (Use Cases). These tests are the most
-# critical as they prove our core business logic is decoupled and testable in
-# isolation. We use mock implementations of our interfaces to achieve this.
+# This is the consolidated and corrected unit test file for all use cases.
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, ANY
 
-
-from chorus_engine.app.use_cases.run_analysis_pipeline import RunAnalysisPipeline
+from chorus_engine.app.use_cases.run_analyst_tier import RunAnalystTier
+from chorus_engine.app.use_cases.run_director_tier import RunDirectorTier
+from chorus_engine.app.use_cases.run_judge_tier import RunJudgeTier
 from chorus_engine.app.interfaces import (
     LLMInterface, DatabaseInterface, VectorDBInterface, PersonaRepositoryInterface
 )
-from chorus_engine.core.entities import AnalysisTask, Persona
+from chorus_engine.core.entities import AnalysisTask, Persona, AnalysisReport
 
 # ==============================================================================
-# RunAnalysisPipeline Unit Tests
+# Centralized Fixtures for All Use Case Tests
 # ==============================================================================
 
 @pytest.fixture
-def mock_adapters():
-    """A fixture that creates mock objects for all required interfaces."""
-    mock_llm = MagicMock(spec=LLMInterface)
-    mock_db = MagicMock(spec=DatabaseInterface)
-    mock_vector_db = MagicMock(spec=VectorDBInterface)
-    mock_persona_repo = MagicMock(spec=PersonaRepositoryInterface)
-    
-    mock_persona = Persona(
-        id="director_alpha",
-        name="Test Director",
-        worldview="A test worldview.",
-        axioms=["Test axiom 1."]
-    )
-    mock_persona_repo.get_persona_by_id.return_value = mock_persona
-    
-    return {
-        "llm": mock_llm,
-        "db": mock_db,
-        "vector_db": mock_vector_db,
-        "persona_repo": mock_persona_repo
-    }
+def mock_llm():
+    """Provides a mocked LLM adapter that returns a string by default."""
+    llm = MagicMock(spec=LLMInterface)
+    llm.is_configured.return_value = True
+    llm.instruct.return_value = "Default LLM response"
+    return llm
 
-def test_run_analysis_pipeline_successful_execution(mock_adapters):
+@pytest.fixture
+def mock_db():
     """
-    Tests the entire use case execution path for a successful run.
+    Provides a mocked DatabaseInterface with autospec=True.
+    This is the definitive fix for the AttributeError, as it enforces
+    that all calls to the mock must match the actual interface definition.
     """
-    # --- Arrange ---
-    pipeline = RunAnalysisPipeline(
-        llm_adapter=mock_adapters["llm"],
-        db_adapter=mock_adapters["db"],
-        vector_db_adapter=mock_adapters["vector_db"],
-        persona_repo=mock_adapters["persona_repo"]
-    )
+    return MagicMock(spec=DatabaseInterface, autospec=True)
 
-    # DEFINITIVE FIX: Pass a dictionary for user_query, not a JSON string.
-    task = AnalysisTask(
-        query_hash="test_hash",
-        user_query={"query": "test query"},
-        status="IN_PROGRESS"
-    )
+@pytest.fixture
+def mock_persona_repo():
+    """Provides a mocked PersonaRepositoryInterface."""
+    repo = MagicMock(spec=PersonaRepositoryInterface)
+    repo.get_persona_by_id.return_value = Persona(id="test_id", name="Test", worldview="None", axioms=[])
+    return repo
 
-    mock_adapters["vector_db"].query_similar_documents.return_value = [{"content": "doc1"}]
-    mock_adapters["llm"].instruct.side_effect = [
-        "HARVESTER: usaspending_search\nKEYWORDS: test",
-        "[NARRATIVE ANALYSIS]\nNarrative.\n[ARGUMENT MAP]\nMap.\n[INTELLIGENCE GAPS]\nGaps."
+# ==============================================================================
+# RunAnalystTier Unit Tests
+# ==============================================================================
+
+def test_run_analyst_tier_successful_execution(mock_llm, mock_db, mock_persona_repo):
+    mock_persona_repo.get_persona_by_id.side_effect = [
+        Persona(id=f"analyst_{i}", name=f"Test Analyst {i}", worldview="None", axioms=[]) for i in range(4)
     ]
-    mock_adapters["db"].queue_and_monitor_harvester_tasks.return_value = True
-    mock_adapters["db"].load_data_from_datalake.return_value = {"news": "some data"}
-
-    # --- Act ---
+    pipeline = RunAnalystTier(
+        llm_adapter=mock_llm, db_adapter=mock_db,
+        vector_db_adapter=MagicMock(spec=VectorDBInterface), persona_repo=mock_persona_repo
+    )
+    task = AnalysisTask(query_hash="test_hash_analyst", user_query={"query": "test"}, status="ANALYSIS_IN_PROGRESS")
+    
     pipeline.execute(task)
 
-    # --- Assert ---
-    mock_adapters["db"].log_progress.assert_any_call("test_hash", "Starting analysis pipeline...")
-    mock_adapters["vector_db"].query_similar_documents.assert_called_once_with("Quantum Computing", limit=200)
-    assert mock_adapters["llm"].instruct.call_count == 2
-    mock_adapters["db"].queue_and_monitor_harvester_tasks.assert_called_once()
-    mock_adapters["db"].load_data_from_datalake.assert_called_once()
-    mock_adapters["db"].update_analysis_task_completion.assert_called_once()
-    mock_adapters["db"].update_analysis_task_failure.assert_not_called()
+    assert mock_persona_repo.get_persona_by_id.call_count == 4
+    assert mock_db.save_analyst_report.call_count == 4
+    mock_db.update_task_status.assert_called_once_with("test_hash_analyst", 'PENDING_SYNTHESIS')
+    mock_db.update_analysis_task_failure.assert_not_called()
 
-def test_run_analysis_pipeline_handles_failure(mock_adapters):
-    """
-    Tests that if any step in the pipeline raises an exception, the use case
-    correctly calls the 'update_analysis_task_failure' interface method.
-    """
-    # --- Arrange ---
-    pipeline = RunAnalysisPipeline(
-        llm_adapter=mock_adapters["llm"],
-        db_adapter=mock_adapters["db"],
-        vector_db_adapter=mock_adapters["vector_db"],
-        persona_repo=mock_adapters["persona_repo"]
+def test_run_analyst_tier_handles_llm_failure(mock_llm, mock_db, mock_persona_repo):
+    mock_llm.instruct.side_effect = Exception("LLM is down")
+    pipeline = RunAnalystTier(
+        llm_adapter=mock_llm, db_adapter=mock_db,
+        vector_db_adapter=MagicMock(spec=VectorDBInterface), persona_repo=mock_persona_repo
     )
-    
-    # DEFINITIVE FIX: Pass a dictionary for user_query, not a JSON string.
-    task = AnalysisTask(
-        query_hash="test_hash_fail",
-        user_query={"query": "test query"},
-        status="IN_PROGRESS"
-    )
-    
-    mock_adapters["vector_db"].query_similar_documents.side_effect = Exception("Vector DB is down")
+    task = AnalysisTask(query_hash="analyst_fail", user_query={"query": "q"}, status="ANALYSIS_IN_PROGRESS")
 
-    # --- Act ---
     pipeline.execute(task)
 
-    # --- Assert ---
-    mock_adapters["db"].update_analysis_task_failure.assert_called_once_with("test_hash_fail", "Vector DB is down")
-    mock_adapters["db"].update_analysis_task_completion.assert_not_called()
+    mock_db.update_analysis_task_failure.assert_called_once_with("analyst_fail", "LLM is down")
+    mock_db.update_task_status.assert_not_called()
+
+# ==============================================================================
+# RunDirectorTier Unit Tests
+# ==============================================================================
+
+def test_run_director_tier_successful_execution(mock_llm, mock_db, mock_persona_repo):
+    mock_db.get_analyst_reports.return_value = [{"persona_id": "a", "report_text": "b"}]
+    mock_llm.instruct.return_value = "Director briefing"
+    pipeline = RunDirectorTier(llm_adapter=mock_llm, db_adapter=mock_db, persona_repo=mock_persona_repo)
+    task = AnalysisTask(query_hash="test_hash_director", user_query={"query": "test"}, status="SYNTHESIS_IN_PROGRESS")
+
+    pipeline.execute(task)
+
+    mock_db.get_analyst_reports.assert_called_once_with("test_hash_director")
+    mock_db.save_director_briefing.assert_called_once_with("test_hash_director", "Director briefing")
+    mock_db.update_task_status.assert_called_once_with("test_hash_director", 'PENDING_JUDGMENT')
+    mock_db.update_analysis_task_failure.assert_not_called()
+
+def test_run_director_tier_handles_no_analyst_reports(mock_llm, mock_db, mock_persona_repo):
+    mock_db.get_analyst_reports.return_value = []
+    pipeline = RunDirectorTier(llm_adapter=mock_llm, db_adapter=mock_db, persona_repo=mock_persona_repo)
+    task = AnalysisTask(query_hash="director_fail", user_query={"query": "q"}, status="SYNTHESIS_IN_PROGRESS")
+
+    pipeline.execute(task)
+
+    mock_db.update_analysis_task_failure.assert_called_once_with("director_fail", "No analyst reports found to synthesize.")
+    mock_db.save_director_briefing.assert_not_called()
+
+# ==============================================================================
+# RunJudgeTier Unit Tests
+# ==============================================================================
+
+def test_run_judge_tier_successful_execution(mock_llm, mock_db, mock_persona_repo):
+    mock_db.get_director_briefing.return_value = {"briefing_text": "This is the briefing."}
+    mock_llm.instruct.return_value = "[NARRATIVE ANALYSIS]\nN\n[ARGUMENT MAP]\nM\n[INTELLIGENCE GAPS]\nG"
+    pipeline = RunJudgeTier(llm_adapter=mock_llm, db_adapter=mock_db, persona_repo=mock_persona_repo)
+    task = AnalysisTask(query_hash="test_hash_judge", user_query={"query": "test"}, status="JUDGMENT_IN_PROGRESS")
+
+    pipeline.execute(task)
+
+    mock_db.get_director_briefing.assert_called_once_with("test_hash_judge")
+    mock_db.update_analysis_task_completion.assert_called_once_with("test_hash_judge", ANY)
+    mock_db.update_analysis_task_failure.assert_not_called()
+
+def test_run_judge_tier_handles_parsing_failure(mock_llm, mock_db, mock_persona_repo):
+    mock_db.get_director_briefing.return_value = {"briefing_text": "This is the briefing."}
+    mock_llm.instruct.return_value = "MALFORMED LLM OUTPUT"
+    pipeline = RunJudgeTier(llm_adapter=mock_llm, db_adapter=mock_db, persona_repo=mock_persona_repo)
+    task = AnalysisTask(query_hash="test_hash_judge_fail", user_query={"query": "test"}, status="JUDGMENT_IN_PROGRESS")
+
+    pipeline.execute(task)
+
+    mock_db.update_analysis_task_completion.assert_not_called()
+    mock_db.update_analysis_task_failure.assert_called_once()
+    failure_call_args = mock_db.update_analysis_task_failure.call_args[0]
+    assert failure_call_args[0] == "test_hash_judge_fail"
+    assert "Failed to parse the AI's final report text" in failure_call_args[1]

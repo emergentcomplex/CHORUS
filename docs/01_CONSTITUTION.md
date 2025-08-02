@@ -1,6 +1,6 @@
 # 🔱 The CHORUS Constitution & Architectural Blueprint
 
-_Document Version: 7.0 (The Cohesive Framework)_
+_Document Version: 7.1 (The Mandate of Correction)_
 _Last Updated: 2025-08-02_
 
 ---
@@ -21,9 +21,10 @@ _Last Updated: 2025-08-02_
 
 ## Part 2: The Axioms of CHORUS Development
 
-_This section codifies all 55 inviolable principles, organized into a cohesive framework. All code and architectural decisions MUST adhere to these axioms._
+_This section codifies all 59 inviolable principles, organized into a cohesive framework. All code and architectural decisions MUST adhere to these axioms._
 
 ### I. Foundational Principles
+
 _The absolute, non-negotiable bedrock of the project. Why we exist and the universal rules that govern all decisions._
 
 1.  **Axiom of Mission Alignment:** The CHORUS platform's "Guiding North Star" is its core mission. Every feature must directly serve the primary mission of detecting the echoes left by classified programs.
@@ -34,6 +35,7 @@ _The absolute, non-negotiable bedrock of the project. Why we exist and the unive
 6.  **Axiom of Ethical Responsibility:** The system must be designed with a conscious consideration of its ethical implications. We have a responsibility to prevent the misuse of our tools for surveillance or discrimination and to protect the privacy of individuals whose data we process.
 
 ### II. Principles of Code Architecture
+
 _How we structure our code. These axioms are derived from the wisdom of Robert C. Martin's "Clean Architecture."_
 
 7.  **Axiom of the Screaming Architecture:** The top-level structure of the repository must scream "OSINT Analysis Engine", not "Web Application" or "Database System". The use cases of the system must be the central, first-class elements of the design.
@@ -47,6 +49,7 @@ _How we structure our code. These axioms are derived from the wisdom of Robert C
 15. **Axiom of Tool, Not Tyrant:** Frameworks are tools to be used, not architectures to be conformed to. They must be kept at arm's length, hidden behind stable interfaces that we control.
 
 ### III. Principles of Data Architecture
+
 _How we structure our data. These axioms are derived from the wisdom of Martin Kleppmann's "Designing Data-Intensive Applications."_
 
 16. **Axiom of Reliability by Design:** The system must be presumed to operate on unreliable hardware and networks. All components must be designed to be fault-tolerant, ensuring the system as a whole remains reliable by preventing faults from escalating into failures.
@@ -60,6 +63,7 @@ _How we structure our data. These axioms are derived from the wisdom of Martin K
 24. **Axiom of Dataflow over Services:** Internal system integration shall favor asynchronous, one-way event streams over synchronous, request/response RPC. This promotes loose coupling and resilience.
 
 ### IV. Principles of AI & Mission Logic
+
 _How the engine thinks. These axioms define the specific "business logic" of the adversarial AI council._
 
 25. **Axiom of Adversarial Analysis:** The system's final judgment must emerge from the structured, parallel debate between multiple, competing AI personas.
@@ -75,6 +79,7 @@ _How the engine thinks. These axioms define the specific "business logic" of the
 35. **Axiom of Systemic Learning:** The system must be a learning organization, capable of both tactical learning (filling knowledge gaps) and strategic learning (improving its own cognitive processes).
 
 ### V. Principles of Praxis & Verification
+
 _How we work and how we prove our work is correct. These axioms govern the development process itself._
 
 36. **Axiom of Stable Interfaces:** The system's core logic must depend on abstractions, not on concretions. All interactions with external dependencies (databases, LLMs, web APIs) **MUST** be routed through an internal adapter that implements a stable, project-defined interface.
@@ -95,5 +100,9 @@ _How we work and how we prove our work is correct. These axioms govern the devel
 51. **Axiom of the Unified Environment:** All CHORUS processes—application services, utility scripts, and the test suite—MUST be executed within the canonical containerized environment. The host machine's only role is to orchestrate the containers. This axiom forbids the "Two Worlds" anti-pattern and ensures absolute reproducibility.
 52. **Axiom of the Dual-Mode Harness:** The development harness MUST provide two distinct, clearly-defined modes: a **Verification Mode** (`make test`) that is slow, hermetic, and guarantees correctness from a clean slate for CI/CD; and an **Iteration Mode** (`make run` + `make test-fast`) that is optimized for rapid, sub-second feedback for local developers.
 53. **Axiom of Canonical Simplicity:** The project's tooling and configuration MUST favor simple, explicit, and standard patterns over complex, "clever," or abstract solutions. All configuration shall be transparent and easily understood by a new developer.
-54. **Axiom of the Lean Artifact:** The production build process MUST create the leanest possible runtime artifact. It will use multi-stage builds to ensure that the final production image contains *only* the application source code and its direct runtime dependencies, and explicitly excludes all build tools, system utilities, and testing code.
+54. **Axiom of the Lean Artifact:** The production build process MUST create the leanest possible runtime artifact. It will use multi-stage builds to ensure that the final production image contains _only_ the application source code and its direct runtime dependencies, and explicitly excludes all build tools, system utilities, and testing code.
 55. **Axiom of Hermetic Verification:** The primary verification target (`make test`) MUST be a self-contained, atomic operation. It is responsible for the entire lifecycle of its execution: building the environment, starting all services, running all setup scripts, executing the full test suite, and tearing down the environment. It shall have no dependencies on pre-existing state.
+56. **Axiom of Mandated Regression Testing:** No bug shall be considered fixed until a new, automated test is created that verifiably reproduces the failure. The development process for any bug fix is hereby mandated as: 1. **Replicate:** Create a new test that fails, proving the bug's existence. 2. **Remediate:** Implement the code changes to fix the bug. 3. **Verify:** Confirm that the new test now passes and that the entire existing test suite also passes, ensuring no regressions have been introduced. This axiom guarantees that the system's verified correctness is always increasing.
+57. **Axiom of True User Simulation:** End-to-end (E2E) tests MUST validate the system from the perspective of a true external user. They shall interact with the system exclusively through its public, containerized interfaces (e.g., the Web UI's HTTP endpoints) and MUST NOT directly access or manipulate internal state (e.g., the database) for test setup or execution. This ensures E2E tests validate the entire, real-world request path.
+58. **Axiom of Resilient Initialization:** All long-running services or daemons MUST NOT assume their dependencies (e.g., databases, message queues) are available at startup. Each service MUST implement a resilient, self-contained initialization loop that repeatedly attempts to establish connections to its dependencies until it succeeds. A service crashing due to a dependency not being immediately ready is a violation of this axiom.
+59. **Axiom of Connection State Pessimism:** All application code MUST treat network connections, especially those held in a pool, as ephemeral and potentially stale. Adapters responsible for persistence MUST implement automatic recovery logic that can detect a defunct connection (e.g., via an `OperationalError` or `IntegrityError`), invalidate the entire connection pool, and allow the calling operation to be retried. This places the responsibility of connection resilience on the application, not the infrastructure.

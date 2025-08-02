@@ -1,4 +1,4 @@
-# Filename: chorus_engine/infrastructure/daemons/sentinel.py (PostgreSQL Pivot)
+# Filename: chorus_engine/infrastructure/daemons/sentinel.py (Definitively Corrected)
 
 import subprocess
 import time
@@ -6,6 +6,7 @@ import os
 import logging
 from datetime import datetime
 from dotenv import load_dotenv
+import psycopg2.extras
 
 from chorus_engine.config import setup_logging
 from chorus_engine.adapters.persistence.postgres_adapter import PostgresAdapter
@@ -13,8 +14,8 @@ from chorus_engine.adapters.persistence.postgres_adapter import PostgresAdapter
 load_dotenv()
 MAX_WORKERS = int(os.getenv("SENTINEL_WORKERS", 4))
 CHECK_INTERVAL_SECONDS = 20
+INIT_RETRY_SECONDS = 15
 
-# EXPLICITLY initialize centralized logging
 setup_logging()
 log = logging.getLogger(__name__)
 
@@ -31,14 +32,33 @@ def get_due_tasks(db_adapter, limit):
             """
             cursor.execute(sql, (limit,))
             return cursor.fetchall()
+    except Exception as e:
+        log.error(f"Error getting due tasks: {e}")
+        return []
     finally:
-        db_adapter._release_connection(conn)
+        if conn: db_adapter._release_connection(conn)
+
+def initialize_dependencies():
+    """
+    THE DEFINITIVE FIX: A resilient initialization loop that waits for the DB.
+    """
+    while True:
+        try:
+            log.info("Initializing dependencies...")
+            db_adapter = PostgresAdapter()
+            # Make a test query to ensure DB is ready
+            db_adapter.get_available_harvesters()
+            log.info("--- Sentinel DB adapter initialized successfully. ---")
+            return db_adapter
+        except Exception as e:
+            log.warning(f"Failed to initialize Sentinel dependencies due to: {e}. Retrying in {INIT_RETRY_SECONDS}s...")
+            time.sleep(INIT_RETRY_SECONDS)
 
 def main():
     worker_script_path = os.path.join(os.path.dirname(__file__), "..", "workers", "harvester_worker.py")
     active_workers = []
     
-    db_adapter = PostgresAdapter()
+    db_adapter = initialize_dependencies()
 
     log.info("--- CHORUS Sentinel Initialized ---")
     log.info(f"--- Max Concurrent Harvesters: {MAX_WORKERS} ---")

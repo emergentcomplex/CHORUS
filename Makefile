@@ -1,8 +1,8 @@
-# 🔱 CHORUS Command Center (v25 - The Final, Hermetic Architecture)
+# Filename: Makefile
+# 🔱 CHORUS Command Center (v28 - Canonical Init)
 SHELL := /bin/bash
 UV := uv
 
-# docker-compose.override.yml is used automatically, so no complex flags are needed.
 DOCKER_COMPOSE := docker compose $(if $(wildcard .env),--env-file .env,)
 
 .DEFAULT_GOAL := help
@@ -66,7 +66,7 @@ test:
 	@echo "[*] VERIFICATION: Starting full, self-contained test run..."
 	@echo "[+] Building images if necessary..."
 	$(DOCKER_COMPOSE) build
-	@echo "[+] Starting full stack..."
+	@echo "[+] Starting full stack (DB will auto-init if volume is new)..."
 	$(DOCKER_COMPOSE) up -d --wait --remove-orphans
 	@echo "[+] Running full test suite IN CONTAINER..."
 	$(DOCKER_COMPOSE) exec chorus-tester make test-fast
@@ -102,9 +102,12 @@ test-e2e:
 # ==============================================================================
 .PHONY: db-reset docker-register-cdc-internal
 db-reset:
-	@echo "[*] Resetting database schema using environment variables..."
+	@echo "[*] Resetting database schema for iterative testing..."
+	# THE DEFINITIVE FIX: This command now ONLY runs the schema script.
+	# One-time setup (permissions, extensions) is handled by the container's
+	# entrypoint on first run.
 	@cat infrastructure/postgres/init.sql | psql -h postgres -U "$$DB_USER" -d "$$DB_NAME" -v ON_ERROR_STOP=1 > /dev/null
-	@echo "[+] Database schema created successfully."
+	@echo "[+] Database schema reset."
 
 docker-register-cdc-internal:
 	@echo "[*] Registering Debezium CDC connector..."

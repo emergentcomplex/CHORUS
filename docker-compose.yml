@@ -1,7 +1,6 @@
-# 🔱 CHORUS Base Compose File (v4 - The Final, Correct Syntax)
+# Filename: docker-compose.yml
+# 🔱 CHORUS Base Compose File (v6 - Canonical DB Init)
 
-# THE DEFINITIVE FIX: Use a top-level 'x-' extension field for reusable blocks.
-# This is the canonical, standard, and correct way to do this in Docker Compose.
 x-chorus-app: &chorus-app
   build:
     context: .
@@ -36,9 +35,17 @@ services:
       POSTGRES_USER: ${DB_USER:-trident_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-abcd1234}
       POSTGRES_DB: ${DB_NAME:-trident_analysis}
+    # THE DEFINITIVE FIX: Mount initialization scripts to be run on first create.
+    volumes:
+      - ./infrastructure/postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     command: postgres -c wal_level=logical
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-trident_user} -d ${DB_NAME:-trident_analysis}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-trident_user} -d ${DB_NAME:-trident_analysis}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -69,7 +76,8 @@ services:
       - --advertise-kafka-addr INTERNAL://redpanda:29092,EXTERNAL://127.0.0.1:9092
       - --mode dev-container
     healthcheck:
-      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      test:
+        ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -98,30 +106,72 @@ services:
       start_period: 40s
 
   chorus-web:
-    <<: *chorus-app # Use the alias to merge the properties
+    <<: *chorus-app
     ports: ["5001:5001"]
-    command: ["uv", "run", "gunicorn", "--bind", "0.0.0.0:5001", "--workers", "4", "chorus_engine.infrastructure.web.web_ui:app"]
+    command:
+      [
+        "uv",
+        "run",
+        "gunicorn",
+        "--bind",
+        "0.0.0.0:5001",
+        "--workers",
+        "4",
+        "chorus_engine.infrastructure.web.web_ui:app",
+      ]
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
 
   chorus-launcher:
     <<: *chorus-app
-    command: ["uv", "run", "python", "-m", "chorus_engine.infrastructure.daemons.launcher"]
+    command:
+      [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "chorus_engine.infrastructure.daemons.launcher",
+      ]
     depends_on:
       postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-      kafka-connect: { condition: service_healthy }
+
+  chorus-synthesis-daemon:
+    <<: *chorus-app
+    command:
+      [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "chorus_engine.infrastructure.daemons.synthesis_daemon",
+      ]
+    depends_on:
+      postgres: { condition: service_healthy }
 
   chorus-sentinel:
     <<: *chorus-app
-    command: ["uv", "run", "python", "-m", "chorus_engine.infrastructure.daemons.sentinel"]
+    command:
+      [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "chorus_engine.infrastructure.daemons.sentinel",
+      ]
     depends_on:
       postgres: { condition: service_healthy }
 
   chorus-stream-processor:
     <<: *chorus-app
-    command: ["uv", "run", "python", "-m", "chorus_engine.infrastructure.services.task_state_manager"]
+    command:
+      [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "chorus_engine.infrastructure.services.task_state_manager",
+      ]
     depends_on:
       redis: { condition: service_healthy }
       kafka-connect: { condition: service_healthy }

@@ -1,4 +1,4 @@
-# Filename: tests/unit/test_web_ui.py (Definitively Corrected Assertion)
+# Filename: tests/unit/test_web_ui.py
 #
 # Unit tests for the Web UI (Flask application).
 
@@ -16,16 +16,11 @@ def client():
     with app.test_client() as client:
         yield client
 
-@patch('chorus_engine.infrastructure.web.web_ui.redis_adapter._get_client')
-@patch('chorus_engine.infrastructure.web.web_ui.db_adapter._get_connection')
-def test_dashboard_get_request(mock_db_conn, mock_redis_client, client):
-    # To test the web UI, we only need to mock the adapter methods it calls.
-    # The lazy init fix prevents the RedisAdapter constructor from connecting.
-    # We now mock the method that the web_ui calls.
-    with patch('chorus_engine.adapters.persistence.redis_adapter.RedisAdapter.get_all_tasks_sorted_by_time', return_value=[]):
-        response = client.get('/')
-        assert response.status_code == 200
-        assert b"Queue New Analysis" in response.data
+@patch('chorus_engine.infrastructure.web.web_ui.redis_adapter.get_all_tasks_sorted_by_time', return_value=[])
+def test_dashboard_get_request(mock_redis_tasks, client):
+    response = client.get('/')
+    assert response.status_code == 200
+    assert b"Queue New Analysis" in response.data
 
 @patch('chorus_engine.infrastructure.web.web_ui.queue_new_query')
 def test_dashboard_post_queues_task(mock_queue_new_query, client):
@@ -57,13 +52,13 @@ def test_htmx_update_dashboard(mock_get_all_tasks, client):
     assert response.status_code == 200
     assert b"Test Query 1" in response.data
 
+@patch('chorus_engine.infrastructure.web.web_ui.db_adapter')
 @patch('chorus_engine.infrastructure.web.web_ui.get_report_raw_text')
-@patch('chorus_engine.infrastructure.web.web_ui.db_adapter._get_connection')
-def test_htmx_update_report(mock_db_conn, mock_get_report, client):
-    mock_cursor = MagicMock()
-    mock_db_conn.return_value.cursor.return_value.__enter__.return_value = mock_cursor
-    mock_cursor.fetchall.return_value = [{'status_message': 'Pipeline started.', 'timestamp': MagicMock()}]
-    
+def test_htmx_update_report(mock_get_report, mock_db_adapter, client):
+    mock_db_adapter.get_analyst_reports.return_value = [
+        {'persona_id': 'analyst_hawk', 'report_text': 'Hawk Report'}
+    ]
+    mock_db_adapter.get_director_briefing.return_value = {'briefing_text': 'Director Briefing'}
     # THE DEFINITIVE FIX: Provide a mock that satisfies all regexes in the controller.
     mock_get_report.return_value = """
     [NARRATIVE ANALYSIS]
@@ -77,7 +72,6 @@ def test_htmx_update_report(mock_db_conn, mock_get_report, client):
     response = client.get('/update_report/some_hash')
     
     assert response.status_code == 200
-    assert b"Pipeline started." in response.data
-    assert b"<p>Test narrative.</p>" in response.data
-    assert b"<li>Point 1</li>" in response.data
-    assert b"<li>Gap 1</li>" in response.data
+    assert b"Hawk Report" in response.data
+    assert b"Director Briefing" in response.data
+    assert b"Test narrative." in response.data

@@ -25,6 +25,7 @@ class JsonFormatter(logging.Formatter):
 
     def format(self, record):
         log_data = {
+            # THE DEFINITIVE FIX: Pass the 'record' object to the formatTime method.
             'timestamp': self.formatTime(record, self.datefmt),
             'level': record.levelname,
             'name': record.name,
@@ -39,16 +40,16 @@ def setup_logging():
     """
     Configures the logging for the entire application.
     """
-    # THE DEFINITIVE FIX: Use force=True to ensure that in any context
-    # (main process, subprocess, test runner), the logging is reconfigured
-    # exactly as specified here, tearing down any previous handlers.
+    # Set the root logger level to DEBUG to capture all events.
+    # Use force=True to ensure this configuration overrides any other.
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         stream=sys.stdout,
         force=True
     )
 
+    # Keep the SLI logger at INFO to avoid polluting it with debug messages.
     sli_logger = logging.getLogger('sli')
     sli_logger.setLevel(logging.INFO)
     sli_logger.propagate = False
@@ -61,6 +62,11 @@ def setup_logging():
     file_handler = logging.FileHandler(sli_log_path)
     file_handler.setFormatter(JsonFormatter())
     sli_logger.addHandler(file_handler)
+
+    # Silence overly verbose libraries at DEBUG level
+    logging.getLogger("urllib3").setLevel(logging.INFO)
+    logging.getLogger("httpx").setLevel(logging.INFO)
+
 
 def setup_path():
     """Adds the project root to the Python path."""

@@ -1,61 +1,78 @@
-html
-<!-- Filename: scripts/templates/partials/report_content.html (v2.1) -->
-<!-- Professional Aesthetics with Tailwind Typography -->
+<!-- Filename: chorus_engine/infrastructure/web/templates/partials/report_content.html -->
+<!-- 🔱 CHORUS Adversarial Council Report Viewer -->
 
-<div class="space-y-4">
+<div class="space-y-6">
+    <!-- 1. Analysis Log -->
     <div>
         <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-2">Analysis Log</h3>
-        <div class="mt-2 text-sm text-gray-400 font-mono space-y-1">
+        <div class="mt-2 text-sm text-gray-400 font-mono space-y-1 max-h-48 overflow-y-auto">
             {% for update in progress_updates %}
                 <p><span class="text-gray-500">{{ update.timestamp.strftime('%H:%M:%S') }} ></span> {{ update.status_message }}</p>
             {% endfor %}
         </div>
     </div>
 
+    <!-- 2. Director's Briefing (if available) -->
+    {% if director_briefing %}
     <div>
-        <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-2">Final Report</h3>
-        
-        {% if report_data %}
-            {% if report_data.error %}
-                <!-- Display Controlled Errors -->
+        <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-2">Director's Briefing</h3>
+        <div class="mt-4 p-4 bg-gray-800 border border-gray-700 rounded-md text-gray-300 prose prose-invert max-w-none prose-p:text-gray-300">
+            {{ director_briefing.briefing_text | markdown }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 3. Analyst Wing (if available) -->
+    {% if analyst_reports %}
+    <div>
+        <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-2">Analyst Wing: Competing Reports</h3>
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for report in analyst_reports %}
+            <div class="bg-gray-800 border border-gray-700 rounded-md p-4">
+                <h4 class="font-bold text-cyan-400">{{ report.persona_id | title | replace('_', ' ') }}</h4>
+                <div class="mt-2 text-sm text-gray-400 prose prose-invert max-w-none prose-p:text-gray-400">
+                    {{ report.report_text | markdown }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 4. Final Verdict (if available) -->
+    <div>
+        <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-2">Final Verdict</h3>
+        {% if final_report_data %}
+            {% if final_report_data.error %}
                 <div class="mt-4 p-4 bg-red-900 border border-red-700 rounded-md text-red-200">
                     <h4 class="font-bold">Analysis Failed</h4>
-                    <p class="font-mono mt-2">{{ report_data.error }}</p>
+                    <p class="font-mono mt-2">{{ final_report_data.error }}</p>
                 </div>
             {% else %}
-                <!-- THE DEFINITIVE AESTHETIC UPGRADE -->
-                <div class="mt-4 p-6 bg-gray-800 border border-gray-700 rounded-md text-gray-300 space-y-8">
-                    
-                    <!-- Narrative Analysis Section -->
+                <div class="mt-4 p-6 bg-gray-800 border-2 border-cyan-500/50 rounded-md text-gray-300 space-y-8 shadow-lg">
                     <div>
                         <h4 class="text-xl font-bold text-cyan-400 tracking-wider">[NARRATIVE ANALYSIS]</h4>
-                        <!-- The 'prose' classes automatically style the HTML rendered from Markdown -->
                         <div class="prose prose-invert mt-4 max-w-none prose-p:text-gray-300 prose-headings:text-gray-100">
-                            {{ report_data.narrative_analysis_html | safe }}
+                            {{ final_report_data.narrative_analysis_html | safe }}
                         </div>
                     </div>
-
-                    <!-- Argument Map Section -->
                     <div>
                         <h4 class="text-xl font-bold text-cyan-400 tracking-wider">[ARGUMENT MAP]</h4>
                         <div class="prose prose-invert mt-4 max-w-none prose-ul:list-disc prose-li:text-gray-300">
-                            {{ report_data.argument_map_html | safe }}
+                            {{ final_report_data.argument_map_html | safe }}
                         </div>
                     </div>
-
-                    <!-- Intelligence Gaps Section -->
                     <div>
                         <h4 class="text-xl font-bold text-cyan-400 tracking-wider">[INTELLIGENCE GAPS]</h4>
                         <div class="prose prose-invert mt-4 max-w-none prose-ol:list-decimal prose-li:text-gray-300">
-                            {{ report_data.intelligence_gaps_html | safe }}
+                            {{ final_report_data.intelligence_gaps_html | safe }}
                         </div>
                     </div>
-
                 </div>
             {% endif %}
         {% else %}
             <div class="mt-4 text-gray-500">
-                Analysis in progress. This panel will automatically update when the report is ready.
+                Analysis in progress. This panel will automatically update when the final verdict is ready.
             </div>
         {% endif %}
     </div>

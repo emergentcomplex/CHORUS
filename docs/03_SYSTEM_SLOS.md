@@ -1,113 +1,79 @@
-# 🔱 CHORUS Service Level Objectives (SLOs)
-_Document Version: 2.1 (Canonical Naming)_
+# 🔱 The CHORUS System SLO Charter
 
-## 1. Overview
-
-This document defines the explicit Service Level Objectives (SLOs) for the CHORUS system. These SLOs are the measurable targets for performance, availability, and integrity that guide our architectural decisions. They are our contract with our users and ourselves.
-
-This document is structured as follows:
-1.  **System Components & Journeys:** A breakdown of the system into measurable parts.
-2.  **Service Level Indicators (SLIs):** The specific metrics we measure.
-3.  **Service Level Objectives (SLOs):** The target values for our SLIs.
-4.  **Error Budgets:** The operational meaning of our SLOs.
-5.  **Architectural Triggers:** How SLO violations inform our roadmap.
+_Document Version: 2.0 (The Dataflow Mandate)_
+_Last Updated: 2025-08-02_
 
 ---
 
-## 2. System Components & User Journeys
+## 1. Philosophy: Measuring What Matters
 
-| Code       | Component / Journey                  | Description                                                              |
-| :--------- | :----------------------------------- | :----------------------------------------------------------------------- |
-| **C-WEB**  | Web UI (Flask Application)           | The user-facing dashboard and reporting interface.                       |
-| **C-DB**   | MariaDB Database                     | The primary OLTP database and vector store (System of Record).           |
-| **C-LLM**  | LLM Adapter (Gemini)                 | The interface to the external Large Language Model.                      |
-| **C-SENT** | Sentinel Daemon                      | The daemon responsible for orchestrating data harvesting tasks.          |
-| **C-LAUN** | Launcher Daemon                      | The daemon responsible for orchestrating analysis tasks.                 |
-| **J-QUERY**| Query Submission                     | User submits a query; task is created in the database.                   |
-| **J-HARV** | Harvester Execution                  | A single harvester worker runs, collects data, and saves to the datalake.|
-| **J-ANLZ** | Analysis Execution                   | The full analysis pipeline runs, from planning to final report synthesis.|
-| **J-RPRT** | Report Viewing                       | User views the live-updating report page for an analysis session.        |
-| **J-INGEST**| DARPA Ingestion Pipeline             | The `make ingest-darpa` command runs to populate the vector DB.          |
+This document defines the Service Level Objectives (SLOs) for the CHORUS engine. Our philosophy is to measure the health of the end-to-end dataflow, not just the performance of individual services in isolation.
+
+We focus on three core pillars of a healthy data-intensive system:
+
+1.  **Freshness:** How up-to-date is our derived data?
+2.  **Throughput:** How much work can the system process in a given time?
+3.  **Correctness:** What percentage of operations complete successfully?
+
+These SLOs are our promise: they define a reliable and performant system. All development and operational efforts must be aligned with meeting or exceeding these targets.
+
+---
+
+## 2. The Critical User Journeys (CUJs)
+
+Our SLOs are defined in the context of two critical user journeys:
+
+1.  **The Interactive Journey:** A user submits a new query and observes the results on the dashboard. This journey is latency-sensitive.
+2.  **The Asynchronous Journey:** A task is processed through the entire multi-tier analysis pipeline. This journey is throughput- and correctness-sensitive.
 
 ---
 
 ## 3. Service Level Indicators (SLIs)
 
-An SLI is a direct measurement of a system's behavior.
+These are the raw, quantitative measurements we take from the system to evaluate our SLOs.
 
-| SLI Name                  | Description                                                              | Measurement Unit |
-| :------------------------ | :----------------------------------------------------------------------- | :--------------- |
-| `request_latency`         | Time elapsed to complete a request or operation.                         | Milliseconds (ms)|
-| `availability`            | Proportion of valid requests that succeed.                               | Percentage (%)   |
-| `data_integrity`          | Proportion of data records that are persisted without loss or corruption.| Percentage (%)   |
-| `pipeline_success_rate`   | Proportion of batch jobs or pipelines that complete without fatal error. | Percentage (%)   |
+| Component / Flow              | SLI Name                      | SLI Specification                                                                 | Rationale                                                                 |
+| ----------------------------- | ----------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Data Ingestion Pipeline**   | `cdc_to_topic_latency_ms`     | Time from DB commit to event appearance in Redpanda topic. (p95)                  | Measures the freshness of our event log, the heart of the system.         |
+| **Stream Processing**         | `topic_to_cache_latency_ms`   | Time from event appearance in topic to state update in Redis cache. (p95)         | Measures the freshness of our primary derived data store for the UI.      |
+| **Web UI**                    | `request_latency_ms`          | Time for the Flask backend to process an HTTP request. (p95)                      | Measures the responsiveness of the user-facing interactive components.    |
+| **Analysis Pipeline (E2E)**   | `end_to_end_latency_minutes`  | Time from task creation to `COMPLETED` status for a "flash" query. (p95)          | Measures the total time-to-value for the core analytical product.         |
+| **Analysis Daemons**          | `pipeline_success_rate`       | Percentage of tasks that transition to the next state without error.              | Measures the correctness and reliability of our core business logic.      |
+| **Harvester Sentinel**        | `harvester_execution_rate`    | Percentage of scheduled harvester jobs that complete successfully.                | Measures the reliability of our external data collection.                 |
+| **System Throughput**         | `tasks_processed_per_hour`    | The number of "flash" analysis tasks the system can complete in one hour.         | Measures the overall capacity and scalability of the analysis pipeline.   |
 
 ---
 
 ## 4. Service Level Objectives (SLOs)
 
-An SLO is a target value for an SLI over a given time period (typically 30 days).
+These are the specific, measurable targets for our SLIs over a rolling 28-day period.
 
-### 4.1. Latency SLOs
-*(Measured at the 95th percentile (p95) over a 30-day window)*
+### 4.1. Freshness & Latency SLOs
 
-| Component / Journey | SLI                 | Target (p95) |
-| :------------------ | :------------------ | :----------- |
-| **C-WEB (Dashboard Load)** | `request_latency`   | `< 500ms`    |
-| **C-WEB (HTMX Poll)**      | `request_latency`   | `< 200ms`    |
-| **C-DB** (Standard Query)  | `request_latency`   | `< 50ms`     |
-| **C-DB** (Vector Search)   | `request_latency`   | `< 800ms`    |
-| **C-LLM** (API Call)       | `request_latency`   | `< 10,000ms` |
-| **J-QUERY** (End-to-End)   | `request_latency`   | `< 500ms`    |
-| **J-HARV (Single Task)**   | `request_latency`   | `< 5 minutes`|
-| **J-ANLZ (Flash Mode)**    | `request_latency`   | `< 3 minutes`|
-| **J-ANLZ (Deep Dive Mode)**| `request_latency`   | `< 15 minutes`|
+| Component / Flow            | SLI Metric                   | Target (p95)      |
+| --------------------------- | ---------------------------- | ----------------- |
+| **CDC Pipeline**            | `cdc_to_topic_latency_ms`    | **< 5,000 ms**    |
+| **Stream Processor**        | `topic_to_cache_latency_ms`  | **< 2,000 ms**    |
+| **Web UI (Dashboard)**      | `request_latency_ms`         | **< 200 ms**      |
+| **Web UI (Report View)**    | `request_latency_ms`         | **< 500 ms**      |
+| **Full Analysis Pipeline**  | `end_to_end_latency_minutes` | **< 5 minutes**   |
 
-### 4.2. Availability & Success SLOs
-*(Measured over a 30-day window)*
+### 4.2. Correctness & Throughput SLOs
 
-| Component / Journey | SLI                       | Target    |
-| :------------------ | :------------------------ | :-------- |
-| **C-WEB**           | `availability`            | `99.9%`   |
-| **C-SENT** (Uptime) | `availability`            | `99.5%`   |
-| **C-LAUN** (Uptime) | `availability`            | `99.5%`   |
-| **C-LLM** (Adapter) | `availability` (incl. retries) | `99.0%`   |
-| **J-HARV (Single Task)** | `pipeline_success_rate`   | `98.0%`   |
-| **J-ANLZ**          | `pipeline_success_rate`   | `98.0%`   |
-| **J-INGEST**        | `pipeline_success_rate`   | `99.0%`   |
-
-### 4.3. Data Integrity SLOs
-*(Measured over a 30-day window)*
-
-| Component           | SLI                | Target  | Rationale (Constitutional Axiom) |
-| :------------------ | :----------------- | :------ | :------------------------------- |
-| **C-DB** (Core Tables) | `data_integrity`   | `100%`  | **Axiom 19:** Integrity over Timeliness. The System of Record must be perfect. |
-| **Datalake Files**  | `data_integrity`   | `99.9%` | **Axiom 18:** Derived State. Can be rebuilt, but should be reliable. |
-| **CDC Pipeline (Future)** | `data_integrity` | `100%`  | **Axiom 17:** The Unified Log. Must not drop events. |
+| Component / Flow            | SLI Metric                   | Target            |
+| --------------------------- | ---------------------------- | ----------------- |
+| **Analyst Tier**            | `pipeline_success_rate`      | **> 99.5%**       |
+| **Director & Judge Tiers**  | `pipeline_success_rate`      | **> 99.9%**       |
+| **Harvester Sentinel**      | `harvester_execution_rate`   | **> 98.0%**       |
+| **System Throughput**       | `tasks_processed_per_hour`   | **> 120 tasks**   |
 
 ---
 
-## 5. Error Budgets
+## 5. Error Budget Policy
 
-An error budget is the inverse of an SLO (`100% - SLO`). It quantifies the acceptable level of failure. Exceeding the error budget requires freezing new feature development to focus on reliability.
+An error budget is the inverse of our SLO and represents the acceptable level of failure. For a 99.5% success SLO, our error budget is 0.5%.
 
-**Example Budgets for a 30-Day Period (43,200 minutes):**
+-   **If we are within our error budget:** We are free to innovate, deploy new features, and take calculated risks.
+-   **If we have exhausted our error budget:** All new feature development is halted. The team's entire focus shifts to reliability, bug fixing, and performance improvements until the system is back within its SLO targets.
 
-| Component         | SLO       | Error Budget (Downtime / Failures) |
-| :---------------- | :-------- | :--------------------------------- |
-| **C-WEB**         | `99.9%`   | `43.2 minutes` of downtime.        |
-| **C-SENT/C-LAUN** | `99.5%`   | `3.6 hours` of downtime.           |
-| **J-ANLZ**        | `98.0%`   | `2 failures` per 100 tasks initiated. |
-| **C-DB** (Integrity) | `100%`    | `0 failures`. Any data loss is a SEV-1 incident. |
-
----
-
-## 6. Architectural Triggers
-
-This SLO document provides a data-driven framework for making major architectural decisions.
-
-1.  **Database Load Trigger:** If the p95 latency for `C-DB (Standard Query)` exceeds **150ms** for a sustained period of 24 hours, it indicates that the polling mechanism of the daemons is overloading the database. This will trigger an architectural review to implement an event-driven push model (e.g., via the Kafka Master Plan).
-
-2.  **Analysis Latency Trigger:** If the p95 latency for `J-ANLZ (Deep Dive Mode)` consistently exceeds its **15-minute** SLO, and the bottleneck is identified as the serial `queue_and_monitor_harvester_tasks` step, this will trigger a review to parallelize harvesting and synthesis using a stream processing model.
-
-3.  **Reliability Trigger:** If the error budget for `J-ANLZ` or `J-HARV (Single Task)` is consumed within the first half of a 30-day period, all new feature development will be halted to address the root causes of the failures.
+This policy ensures a healthy, long-term balance between innovation and stability.

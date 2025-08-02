@@ -1,6 +1,14 @@
-# 🔱 CHORUS: The Judgment Engine
+<p align="center">
+  <a href="#">
+    <img src="https://img.shields.io/badge/CHORUS-Judgment%20Engine-teal?style=for-the-badge" alt="Project Title">
+  </a>
+</p>
 
-> ✨ _The loudest secrets are kept in silence. We built an engine that listens._ ✨
+> ✨ **The loudest secrets are kept in silence. We built an engine that listens.**
+>
+> We believe that silence is not an absence of data, but a signal in itself. A budget line vanishes into shadow. A job posting for a cleared physicist appears like a flare in the night. A cluster of obscure academic papers creates a new hum in the noise.
+>
+> CHORUS is an observatory for these echoes. It is a fully autonomous, self-healing, and evolving intelligence platform designed to fuse disparate, open-source data verticals into a single, coherent revelation. It does not give you an answer; it delivers a **verdict**.
 
 <p align="center">
   <img src="https://img.shields.io/badge/build-passing-green?style=for-the-badge" alt="Build Status">
@@ -10,21 +18,14 @@
 
 ---
 
-## 1. Core Concepts & Architectural Views
+### 🏛️ The Architecture in Four Views
 
-The CHORUS engine is a complex system best understood by viewing it through three distinct architectural lenses:
+To comprehend CHORUS is to view it through four distinct lenses, each revealing a different layer of its soul.
 
-1.  **The Judgment Process:** The logical flow of how an AI council debates and synthesizes a query into a final verdict. This is the *why* of the system.
-2.  **The Dataflow Engine:** The physical infrastructure and data's journey through our containerized, event-driven services. This is the *how* of the system.
-3.  **The Development Praxis:** The workflow that developers use to build, verify, and maintain the system, governed by our `Makefile`. This is *how we trust* the system.
+<br>
 
-The following diagrams illustrate each of these views.
-
----
-
-## 2. The Judgment Process: The Adversarial Council
-
-This diagram illustrates the logical flow of analysis. A user's query is not answered directly; it is subjected to a multi-tiered, adversarial debate between specialized AI personas.
+#### 🧠 **View I: The Judgment Process**
+*This is the **why** of the system: the logical flow of how an AI council debates and synthesizes a query into a final verdict.*
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#14b8a6', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
@@ -70,20 +71,16 @@ graph TD
     Briefing --> Judge
 
     classDef persona fill:#083344,stroke:#0e7490,color:#e0f2fe
-    class P1,P2,P3,P4 persona;
-```
+    class P1,P2,P3,P4 persona;```
 
----
-
-## 3. The Dataflow Engine: The Unbundled Database
-
-This diagram shows the physical infrastructure. It illustrates how data flows through our containerized services, from the initial write in the database to the final materialized views in the cache.
+#### ⚙️ **View II: The Dataflow Engine**
+*This is the **how** of the system: the physical infrastructure and data's journey through our containerized, event-driven services.*
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#3b82f6', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
 graph TD
     subgraph "Write Path (User Interaction)"
-        A["Web UI"] -- "1. INSERT task" --> D{"PostgreSQL (System of Record)"};
+        A["<i class='fa fa-desktop'></i> Web UI"] -- "1. INSERT task" --> D{"<i class='fa fa-database'></i> PostgreSQL (System of Record)"};
     end
 
     subgraph "The Unified Log (The System's Nervous System)"
@@ -107,11 +104,8 @@ graph TD
     style D fill:#047857,stroke:#34d399,color:#fff
 ```
 
----
-
-## 4. The Development Praxis: The Dual-Mode Harness
-
-This diagram explains the `Makefile`-driven development workflow, which is central to our engineering philosophy. It separates the rapid, iterative "Fast Loop" from the slow, hermetic "Verification Loop."
+#### 🛠️ **View III: The Development Praxis**
+*This is **how we trust** the system: the `Makefile`-driven workflow that separates rapid iteration from hermetic verification.*
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#d946ef', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
@@ -145,11 +139,8 @@ graph LR
     end
 ```
 
----
-
-## 5. The Systemic Learning Loop: The Path to Recursion
-
-This diagram illustrates the future-state goal of the CHORUS engine: to learn from its own judgments. This represents the highest level of abstraction and the system's capacity for recursion.
+#### 🌀 **View IV: The Recursive Heart**
+*This is the **future** of the system: the path to true recursion, where the engine learns from its own judgments.*
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#ca8a04', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
@@ -164,60 +155,61 @@ graph TD
 
 ---
 
-## 6. Getting Started
+### 🚀 Your First Session
 
-### Prerequisites
+Ready to join the chorus? Here’s how to get the engine running.
 
--   **Git:** For cloning the repository.
--   **Docker & Docker Compose:** For running the entire containerized environment.
--   **An IDE:** For editing code on your host machine.
+**Prerequisites:** Git, Docker & Docker Compose.
 
-### 1. Initial Setup
-
+**Step 1: Clone & Configure** 🧬
 ```bash
-# Clone the repository and navigate into it
+# Clone the repository and enter the directory
 git clone <your-repo-url>
 cd CHORUS
 
 # Create your personal environment file from the template
 cp .env.example .env
 
-# Open .env with your editor and add your GOOGLE_API_KEY
-# and any other required API keys (e.g., USAJOBS_API_KEY).
-# nano .env
+# Add your API keys to the new .env file
+nano .env
 ```
 
-### 2. Build and Run the System
-
-This single command builds the Docker images (a one-time slow operation) and starts all services in development mode with live code reloading.
-
+**Step 2: Build & Launch** 🛰️
 ```bash
-# This command will stop, build, and start the entire stack.
+# This single command builds the base image and starts all services.
+# The first run will be slow; subsequent runs will be fast.
 make rebuild
 ```
 
-Subsequent starts can use the faster `make run` command.
+**Step 3: Observe** 🔭
+-   **CHORUS C2 UI:** `http://localhost:5001`
+-   **Redpanda Console:** `http://localhost:8080`
 
-### 3. Access the System
-
--   **CHORUS C2 UI:** [http://localhost:5001](http://localhost:5001)
--   **Redpanda Console (Kafka UI):** [http://localhost:8080](http://localhost:8080)
-
-### 4. Shut Down the System
-
+**Step 4: Power Down** 🔌
 ```bash
 # Stop and remove all running containers and volumes.
 make stop
 ```
 
-## 7. Contributing
+---
 
-Contributions are welcome but must adhere to the project's foundational principles. All development is guided by a strict set of axioms designed to ensure quality, consistency, and architectural integrity.
+### 📜 Our Guiding Philosophy
 
-Before contributing, please familiarize yourself with the canonical documents in the `/docs` directory:
-1.  **`01_CONSTITUTION.md`**: The supreme law governing the system's design and non-verification principles.
-2.  **`04_VERIFICATION_COVENANT.md`**: The supreme law governing how we prove our work is correct.
+Development on CHORUS is not arbitrary. It is a disciplined practice guided by a set of foundational documents that define our architecture, our data strategy, and our commitment to verification.
 
-## 8. License
+-   **The Constitution:** The supreme law governing the system's design and mission.
+-   **The Verification Covenant:** The supreme law governing how we prove our work is correct.
+
+Before contributing, we ask that you read these documents in the `/docs` directory to understand the principles that make CHORUS possible.
+
+---
+
+### 🤝 Answering the Call
+
+Contributions are welcome, but they are judged against the high standards set forth in our canonical documents. If you are ready to build a system of judgment, we are ready to hear your voice.
+
+---
+
+### 📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

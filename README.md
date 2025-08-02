@@ -71,7 +71,8 @@ graph TD
     Briefing --> Judge
 
     classDef persona fill:#083344,stroke:#0e7490,color:#e0f2fe
-    class P1,P2,P3,P4 persona;```
+    class P1,P2,P3,P4 persona;
+```
 
 #### ⚙️ **View II: The Dataflow Engine**
 *This is the **how** of the system: the physical infrastructure and data's journey through our containerized, event-driven services.*

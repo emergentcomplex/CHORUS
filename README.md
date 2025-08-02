@@ -25,25 +25,25 @@ CHORUS is a data-intensive application built on the principles of the "Unbundled
 ```mermaid
 graph TD
     subgraph "User Interaction & Write Path"
-        A[Web UI] -- Writes (e.g., New Task) --> D{PostgreSQL (System of Record)};
+        A["Web UI"] -- "Writes (e.g., New Task)" --> D{"PostgreSQL (System of Record)"};
     end
 
     subgraph "The System's Nervous System (The Unified Log)"
         style L fill:#27272a,stroke:#a1a1aa,color:#fff
-        D -- Change Data Capture --> E[Debezium];
-        E -- Immutable Events --> L[Redpanda/Kafka Topic: task_queue];
+        D -- "Change Data Capture" --> E["Debezium"];
+        E -- "Immutable Events" --> L["Redpanda/Kafka Topic: task_queue"];
     end
 
     subgraph "Asynchronous Processing & Derived Data"
         style P fill:#1e3a8a,stroke:#60a5fa,color:#fff
         style S fill:#431407,stroke:#e11d48,color:#fff
-        L -- Consumes Events --> P[Stream Processor (chorus-stream-processor)];
-        P -- Materializes State --> S[Redis Cache (Fast Read Store)];
+        L -- "Consumes Events" --> P["Stream Processor (chorus-stream-processor)"];
+        P -- "Materializes State" --> S["Redis Cache (Fast Read Store)"];
     end
 
     subgraph "Read & Analysis Path"
-        S -- Fast Dashboard Queries --> A;
-        D -- Deep Analysis & RAG --> G[Analysis Daemons (chorus-launcher)];
+        S -- "Fast Dashboard Queries" --> A;
+        D -- "Deep Analysis & RAG" --> G["Analysis Daemons (chorus-launcher)"];
     end
 
     style D fill:#047857,stroke:#34d399,color:#fff

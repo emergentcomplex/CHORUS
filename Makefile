@@ -1,5 +1,5 @@
 # Filename: Makefile
-# 🔱 CHORUS Command Center (v28 - Canonical Init)
+# 🔱 CHORUS Command Center (v29 - The Launch Mandate)
 SHELL := /bin/bash
 UV := uv
 
@@ -12,7 +12,7 @@ DOCKER_COMPOSE := docker compose $(if $(wildcard .env),--env-file .env,)
 # ==============================================================================
 .PHONY: help
 help:
-	@echo "🔱 CHORUS Command Center (Final)"
+	@echo "🔱 CHORUS Command Center"
 	@echo ""
 	@echo "Usage: make [command]"
 	@echo ""
@@ -20,7 +20,7 @@ help:
 	@echo " CORE DEVELOPMENT LIFECYCLE"
 	@echo "--------------------------------------------------------------------------"
 	@echo "  install          - Sync host dependencies for local tooling (e.g., IDEs)."
-	@echo "  rebuild          - (Slow Loop) Stop, rebuild the base image, and start."
+	@echo "  launch           - (Slow Loop) Stop, rebuild the base image, and start fresh."
 	@echo "  run              - (Fast Loop) Start all services with live code mounting."
 	@echo "  stop             - Stop and remove all CHORUS services and volumes."
 	@echo "  logs             - Tail logs for all running services."
@@ -34,7 +34,7 @@ help:
 # ==============================================================================
 # CORE DEVELOPMENT LIFECYCLE
 # ==============================================================================
-.PHONY: install build rebuild run stop logs
+.PHONY: install build launch run stop logs
 install:
 	@echo "[*] Syncing host dependencies for local tooling (e.g., IDEs)..."
 	$(UV) sync
@@ -43,8 +43,8 @@ build:
 	@echo "[*] Building the base Docker image with all dependencies..."
 	$(DOCKER_COMPOSE) build
 
-rebuild: stop build run
-	@echo "[+] Rebuild complete. Development environment is running."
+launch: stop build run
+	@echo "[+] Launch complete. Development environment is running."
 
 run:
 	@echo "[*] Starting all services in DEV mode (with live code mounting)..."

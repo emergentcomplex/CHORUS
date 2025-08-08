@@ -1,5 +1,5 @@
 # Filename: docker-compose.dev.yml
-# 🔱 CHORUS DEVELOPMENT ENVIRONMENT (v3 - Simplified)
+# 🔱 CHORUS DEVELOPMENT ENVIRONMENT (v6 - DNS Corrected)
 
 networks:
   chorus-net:
@@ -18,6 +18,9 @@ x-chorus-app: &chorus-app
     - .:/app
     - ./datalake:/app/datalake
     - ./logs:/app/logs
+  # THE DEFINITIVE FIX: Add a public DNS to ensure external connectivity.
+  dns:
+    - 8.8.8.8
 
 services:
   postgres:
@@ -125,3 +128,5 @@ services:
         "chorus_engine.infrastructure.services.task_state_manager",
       ]
     depends_on: [redis, redpanda]
+    environment:
+      - KAFKA_BROKER=redpanda:29092

@@ -1,5 +1,5 @@
 # Filename: Makefile
-# 🔱 CHORUS Command Center (v29 - Zsh Safe)
+# 🔱 CHORUS Command Center (v33 - Explicit Base Build)
 SHELL := /bin/bash
 
 # --- Environment-Specific Compose Commands ---
@@ -12,28 +12,30 @@ DOCKER_COMPOSE_SETUP_TEST := docker compose --env-file .env.test -f docker-compo
 
 .DEFAULT_GOAL := help
 
-.PHONY: help run-dev run-prod stop-dev stop-prod logs-dev logs-prod rebuild-dev rebuild-prod test test-fast stop-all
+.PHONY: help run-dev run-prod stop-dev stop-prod logs-dev logs-prod rebuild-dev rebuild-prod test test-fast stop-all build-base
 
 help:
 	@echo "🔱 CHORUS Command Center"
 	@echo ""
-	@echo "--- Environment Management (Can be run concurrently) ---"
+	@echo "--- Environment Management ---"
 	@echo "  run-dev        - Start the DEVELOPMENT environment (UI on port 5002)."
 	@echo "  run-prod       - Start the PRODUCTION environment (UI on port 5001)."
 	@echo "  stop-dev       - Stop and REMOVE the DEVELOPMENT environment."
 	@echo "  stop-prod      - Stop and REMOVE the PRODUCTION environment."
 	@echo "  stop-all       - Force-stop and REMOVE all CHORUS containers and networks."
-	@echo "  logs-dev       - Tail logs from the DEVELOPMENT environment."
-	@echo "  logs-prod      - Tail logs from the PRODUCTION environment."
-	@echo "  rebuild-dev    - Rebuild the DEV environment from a clean slate (deletes DB data)."
-	@echo "  rebuild-prod   - Rebuild the PROD environment from a clean slate (DELETES ALL DATA)."
 	@echo ""
-	@echo "--- Verification Workflow ---"
-	@echo "  test           - Run the full, hermetic test suite (can run concurrently with dev/prod)."
+	@echo "--- Verification & Testing ---"
+	@echo "  test           - Run the full, hermetic test suite for CI/CD."
 	@echo "  test-fast      - Run fast unit tests against the running DEV environment."
+	@echo "  test-journey   - (FINAL VERIFICATION) Verify the complete user journey from UI to Redis."
+
+# --- CORE BUILD STEP ---
+build-base:
+	@echo "[*] Building the stable base image (chorus-base:latest)..."
+	@docker build -f Dockerfile.base -t chorus-base:latest .
 
 # --- DEVELOPMENT ENVIRONMENT ---
-run-dev:
+run-dev: build-base
 	@echo "[*] Building and starting DEVELOPMENT services..."
 	@$(DOCKER_COMPOSE_DEV) up -d --build --wait
 	@echo "[*] Configuring the Debezium connector for DEVELOPMENT..."
@@ -53,7 +55,7 @@ logs-dev:
 	@$(DOCKER_COMPOSE_DEV) logs -f
 
 # --- PRODUCTION ENVIRONMENT ---
-run-prod:
+run-prod: build-base
 	@echo "[*] Building and starting PRODUCTION services..."
 	@$(DOCKER_COMPOSE_PROD) up -d --build --wait
 	@echo "[*] Configuring the Debezium connector for PRODUCTION..."
@@ -62,22 +64,6 @@ run-prod:
 stop-prod:
 	@echo "[*] Tearing down PRODUCTION environment..."
 	@$(DOCKER_COMPOSE_PROD) down --remove-orphans
-
-rebuild-prod:
-	@echo "[WARNING] This will permanently delete the PRODUCTION database volume."
-	@read -p "    Are you sure you want to continue? (y/N) " -n 1 -r; \
-	echo; \
-	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		echo "[*] Rebuilding PRODUCTION environment from a clean slate..."; \
-		$(DOCKER_COMPOSE_PROD) down --volumes --remove-orphans; \
-		make run-prod; \
-	else \
-		echo "[*] Rebuild aborted."; \
-	fi
-
-logs-prod:
-	@echo "[*] Tailing logs for PRODUCTION environment..."
-	@$(DOCKER_COMPOSE_PROD) logs -f
 
 # --- UTILITY ---
 stop-all:
@@ -92,21 +78,19 @@ test-fast:
 	@echo "[*] Running fast unit tests against the DEVELOPMENT environment..."
 	@$(DOCKER_COMPOSE_DEV) exec chorus-web pytest --quiet tests/unit
 
-test:
+test-journey:
+	@echo "[*] FINAL VERIFICATION: Testing the complete user journey..."
+	@$(DOCKER_COMPOSE_DEV) exec chorus-web python3 tools/diagnostics/verify_user_journey.py
+
+test: build-base
 	@echo "[*] VERIFICATION: Starting full test suite run..."
 	@echo "[INFO] This will create and destroy a temporary, isolated test environment."
-	
 	@trap '$(DOCKER_COMPOSE_TEST) down --volumes --remove-orphans > /dev/null 2>&1' EXIT
-	
-	@$(DOCKER_COMPOSE_TEST) build
-	@$(DOCKER_COMPOSE_TEST) up -d --wait
-	
+	@$(DOCKER_COMPOSE_TEST) up -d --build --wait
 	@echo "[*] Configuring the Debezium connector for the test environment..."
 	@$(DOCKER_COMPOSE_SETUP_TEST) run --rm setup-connector
-	
 	@echo "[*] Executing the full test suite in order (Unit -> Integration -> E2E)..."
 	@$(DOCKER_COMPOSE_TEST) exec chorus-tester pytest --quiet tests/unit
 	@$(DOCKER_COMPOSE_TEST) exec chorus-tester pytest --quiet tests/integration
 	@$(DOCKER_COMPOSE_TEST) exec chorus-tester pytest --quiet tests/e2e
-	
 	@echo "\n✅ === FULL VERIFICATION SUITE PASSED === ✅"

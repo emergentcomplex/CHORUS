@@ -1,0 +1,36 @@
+# Filename: .github/workflows/ci_cd.yml
+#
+# 🔱 The CHORUS Constitutional CI/CD Gatekeeper
+#
+# This workflow enforces the project's quality and architectural standards
+# by running the complete, hermetic verification suite on every pull request.
+# Adherence to this check is mandatory for merging, as per the Constitution.
+
+name: CHORUS CI/CD Gatekeeper
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  validate-and-test:
+    name: Run Full Verification Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        uses: docker/setup-buildx-action@v3
+
+      - name: Run Hermetic Test Suite (make test)
+        # This is the single, canonical command to run the entire verification suite.
+        # It builds, starts, sets up, tests, and tears down the entire system.
+        # We pass the GOOGLE_API_KEY as a secret, which is required for E2E tests.
+        # The .env file is intentionally not checked in; secrets are managed by GitHub.
+        run: make test
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}

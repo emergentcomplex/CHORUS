@@ -32,15 +32,15 @@ Our SLOs are defined in the context of two critical user journeys:
 
 These are the raw, quantitative measurements we take from the system to evaluate our SLOs.
 
-| Component / Flow              | SLI Name                      | SLI Specification                                                                 | Rationale                                                                 |
-| ----------------------------- | ----------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| **Data Ingestion Pipeline**   | `cdc_to_topic_latency_ms`     | Time from DB commit to event appearance in Redpanda topic. (p95)                  | Measures the freshness of our event log, the heart of the system.         |
-| **Stream Processing**         | `topic_to_cache_latency_ms`   | Time from event appearance in topic to state update in Redis cache. (p95)         | Measures the freshness of our primary derived data store for the UI.      |
-| **Web UI**                    | `request_latency_ms`          | Time for the Flask backend to process an HTTP request. (p95)                      | Measures the responsiveness of the user-facing interactive components.    |
-| **Analysis Pipeline (E2E)**   | `end_to_end_latency_minutes`  | Time from task creation to `COMPLETED` status for a "flash" query. (p95)          | Measures the total time-to-value for the core analytical product.         |
-| **Analysis Daemons**          | `pipeline_success_rate`       | Percentage of tasks that transition to the next state without error.              | Measures the correctness and reliability of our core business logic.      |
-| **Harvester Sentinel**        | `harvester_execution_rate`    | Percentage of scheduled harvester jobs that complete successfully.                | Measures the reliability of our external data collection.                 |
-| **System Throughput**         | `tasks_processed_per_hour`    | The number of "flash" analysis tasks the system can complete in one hour.         | Measures the overall capacity and scalability of the analysis pipeline.   |
+| Component / Flow            | SLI Name                     | SLI Specification                                                         | Rationale                                                               |
+| --------------------------- | ---------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **Data Ingestion Pipeline** | `cdc_to_topic_latency_ms`    | Time from DB commit to event appearance in Redpanda topic. (p95)          | Measures the freshness of our event log, the heart of the system.       |
+| **Stream Processing**       | `topic_to_cache_latency_ms`  | Time from event appearance in topic to state update in Redis cache. (p95) | Measures the freshness of our primary derived data store for the UI.    |
+| **Web UI**                  | `request_latency_ms`         | Time for the Flask backend to process an HTTP request. (p95)              | Measures the responsiveness of the user-facing interactive components.  |
+| **Analysis Pipeline (E2E)** | `end_to_end_latency_minutes` | Time from task creation to `COMPLETED` status for a "flash" query. (p95)  | Measures the total time-to-value for the core analytical product.       |
+| **Analysis Daemons**        | `pipeline_success_rate`      | Percentage of tasks that transition to the next state without error.      | Measures the correctness and reliability of our core business logic.    |
+| **Harvester Sentinel**      | `harvester_execution_rate`   | Percentage of scheduled harvester jobs that complete successfully.        | Measures the reliability of our external data collection.               |
+| **System Throughput**       | `tasks_processed_per_hour`   | The number of "flash" analysis tasks the system can complete in one hour. | Measures the overall capacity and scalability of the analysis pipeline. |
 
 ---
 
@@ -50,22 +50,22 @@ These are the specific, measurable targets for our SLIs over a rolling 28-day pe
 
 ### 4.1. Freshness & Latency SLOs
 
-| Component / Flow            | SLI Metric                   | Target (p95)      |
-| --------------------------- | ---------------------------- | ----------------- |
-| **CDC Pipeline**            | `cdc_to_topic_latency_ms`    | **< 5,000 ms**    |
-| **Stream Processor**        | `topic_to_cache_latency_ms`  | **< 2,000 ms**    |
-| **Web UI (Dashboard)**      | `request_latency_ms`         | **< 200 ms**      |
-| **Web UI (Report View)**    | `request_latency_ms`         | **< 500 ms**      |
-| **Full Analysis Pipeline**  | `end_to_end_latency_minutes` | **< 5 minutes**   |
+| Component / Flow           | SLI Metric                   | Target (p95)    |
+| -------------------------- | ---------------------------- | --------------- |
+| **CDC Pipeline**           | `cdc_to_topic_latency_ms`    | **< 5,000 ms**  |
+| **Stream Processor**       | `topic_to_cache_latency_ms`  | **< 2,000 ms**  |
+| **Web UI (Dashboard)**     | `request_latency_ms`         | **< 200 ms**    |
+| **Web UI (Report View)**   | `request_latency_ms`         | **< 500 ms**    |
+| **Full Analysis Pipeline** | `end_to_end_latency_minutes` | **< 5 minutes** |
 
 ### 4.2. Correctness & Throughput SLOs
 
-| Component / Flow            | SLI Metric                   | Target            |
-| --------------------------- | ---------------------------- | ----------------- |
-| **Analyst Tier**            | `pipeline_success_rate`      | **> 99.5%**       |
-| **Director & Judge Tiers**  | `pipeline_success_rate`      | **> 99.9%**       |
-| **Harvester Sentinel**      | `harvester_execution_rate`   | **> 98.0%**       |
-| **System Throughput**       | `tasks_processed_per_hour`   | **> 120 tasks**   |
+| Component / Flow           | SLI Metric                 | Target          |
+| -------------------------- | -------------------------- | --------------- |
+| **Analyst Tier**           | `pipeline_success_rate`    | **> 99.5%**     |
+| **Director & Judge Tiers** | `pipeline_success_rate`    | **> 99.9%**     |
+| **Harvester Sentinel**     | `harvester_execution_rate` | **> 98.0%**     |
+| **System Throughput**      | `tasks_processed_per_hour` | **> 120 tasks** |
 
 ---
 
@@ -73,7 +73,7 @@ These are the specific, measurable targets for our SLIs over a rolling 28-day pe
 
 An error budget is the inverse of our SLO and represents the acceptable level of failure. For a 99.5% success SLO, our error budget is 0.5%.
 
--   **If we are within our error budget:** We are free to innovate, deploy new features, and take calculated risks.
--   **If we have exhausted our error budget:** All new feature development is halted. The team's entire focus shifts to reliability, bug fixing, and performance improvements until the system is back within its SLO targets.
+- **If we are within our error budget:** We are free to innovate, deploy new features, and take calculated risks.
+- **If we have exhausted our error budget:** All new feature development is halted. The team's entire focus shifts to reliability, bug fixing, and performance improvements until the system is back within its SLO targets.
 
 This policy ensures a healthy, long-term balance between innovation and stability.

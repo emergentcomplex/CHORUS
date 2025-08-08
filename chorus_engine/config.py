@@ -1,12 +1,8 @@
-# Filename: chorus_engine/config.py (Definitively Corrected Logging)
-#
-# 🔱 CHORUS Autonomous OSINT Engine
-#
-# Centralized configuration, path management, and logging setup for the application.
-
+# Filename: chorus_engine/config.py
 import sys
 import json
 import logging
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -25,7 +21,6 @@ class JsonFormatter(logging.Formatter):
 
     def format(self, record):
         log_data = {
-            # THE DEFINITIVE FIX: Pass the 'record' object to the formatTime method.
             'timestamp': self.formatTime(record, self.datefmt),
             'level': record.levelname,
             'name': record.name,
@@ -39,34 +34,43 @@ class JsonFormatter(logging.Formatter):
 def setup_logging():
     """
     Configures the logging for the entire application.
+    Log level is controlled by the LOG_LEVEL environment variable.
     """
-    # Set the root logger level to DEBUG to capture all events.
-    # Use force=True to ensure this configuration overrides any other.
+    log_level_name = os.getenv('LOG_LEVEL', 'INFO').upper()
+    log_level = getattr(logging, log_level_name, logging.INFO)
+
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=log_level,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         stream=sys.stdout,
         force=True
     )
+    logging.info(f"Root logger configured with level: {log_level_name}")
 
-    # Keep the SLI logger at INFO to avoid polluting it with debug messages.
     sli_logger = logging.getLogger('sli')
     sli_logger.setLevel(logging.INFO)
     sli_logger.propagate = False
 
-    # Clear existing handlers to prevent duplicate logs
     if sli_logger.hasHandlers():
         sli_logger.handlers.clear()
 
-    sli_log_path = LOG_DIR / 'sli.log'
-    file_handler = logging.FileHandler(sli_log_path)
-    file_handler.setFormatter(JsonFormatter())
-    sli_logger.addHandler(file_handler)
+    # THE DEFINITIVE FIX: Make file logging resilient to permission errors.
+    try:
+        sli_log_path = LOG_DIR / 'sli.log'
+        file_handler = logging.FileHandler(sli_log_path)
+        file_handler.setFormatter(JsonFormatter())
+        sli_logger.addHandler(file_handler)
+    except PermissionError:
+        logging.warning(
+            "Could not open sli.log due to a permission error. "
+            "SLI metrics will not be written to a file. "
+            "This is common if the ./logs directory on the host is owned by root."
+        )
 
-    # Silence overly verbose libraries at DEBUG level
-    logging.getLogger("urllib3").setLevel(logging.INFO)
-    logging.getLogger("httpx").setLevel(logging.INFO)
-
+    if log_level > logging.DEBUG:
+        logging.getLogger("urllib3").setLevel(logging.WARNING)
+        logging.getLogger("httpx").setLevel(logging.WARNING)
+        logging.getLogger("kafka").setLevel(logging.WARNING)
 
 def setup_path():
     """Adds the project root to the Python path."""

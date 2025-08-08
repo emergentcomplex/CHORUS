@@ -1,0 +1,127 @@
+# Filename: docker-compose.test.yml
+# 🔱 CHORUS VERIFICATION ENVIRONMENT (v5 - Anchor Corrected)
+
+networks:
+  chorus-net:
+    name: ${COMPOSE_PROJECT_NAME}_chorus-net
+
+x-chorus-app: &chorus-app
+  build: .
+  image: chorus-app:test
+  networks: [chorus-net]
+  env_file: .env.test
+  volumes:
+    - .:/app
+    - ./datalake:/app/datalake
+    - ./logs:/app/logs
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    hostname: postgres
+    networks: [chorus-net]
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - type: volume
+        target: /var/lib/postgresql/data
+      - ./infrastructure/postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    command: postgres -c wal_level=logical
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${DB_USER} -d $${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    hostname: redis
+    networks: [chorus-net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.1.2
+    hostname: redpanda
+    networks: [chorus-net]
+    command:
+      - redpanda start --smp 1 --overprovisioned --node-id 0
+      - --kafka-addr INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      - --advertise-kafka-addr INTERNAL://redpanda:29092,EXTERNAL://127.0.0.1:9092
+      - --mode dev-container
+    healthcheck:
+      test:
+        ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka-connect:
+    image: debezium/connect:2.7.3.Final
+    hostname: kafka-connect
+    networks: [chorus-net]
+    depends_on:
+      redpanda: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    environment:
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      BOOTSTRAP_SERVERS: redpanda:29092
+      GROUP_ID: chorus-connect-group
+      CONFIG_STORAGE_TOPIC: chorus-connect-configs
+      OFFSET_STORAGE_TOPIC: chorus-connect-offsets
+      STATUS_STORAGE_TOPIC: chorus-connect-status
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/connectors"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  chorus-web:
+    <<: *chorus-app
+    command:
+      ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "wsgi:app"]
+    depends_on: [postgres, redis]
+
+  chorus-launcher:
+    <<: *chorus-app
+    command: ["python", "-m", "chorus_engine.infrastructure.daemons.launcher"]
+    depends_on: [postgres]
+
+  chorus-synthesis-daemon:
+    <<: *chorus-app
+    command:
+      ["python", "-m", "chorus_engine.infrastructure.daemons.synthesis_daemon"]
+    depends_on: [postgres]
+
+  chorus-sentinel:
+    <<: *chorus-app
+    command: ["python", "-m", "chorus_engine.infrastructure.daemons.sentinel"]
+    depends_on: [postgres]
+
+  chorus-stream-processor:
+    <<: *chorus-app
+    command:
+      [
+        "python",
+        "-m",
+        "chorus_engine.infrastructure.services.task_state_manager",
+      ]
+    depends_on: [redis, redpanda]
+
+  chorus-tester:
+    <<: *chorus-app
+    command: ["sleep", "infinity"]
+    depends_on:
+      - chorus-web
+      - chorus-launcher
+      - chorus-synthesis-daemon
+      - chorus-sentinel
+      - chorus-stream-processor

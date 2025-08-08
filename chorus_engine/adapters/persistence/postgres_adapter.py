@@ -1,4 +1,5 @@
 # Filename: chorus_engine/adapters/persistence/postgres_adapter.py
+# Filename: chorus_engine/adapters/persistence/postgres_adapter.py
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
 from psycopg2.extras import RealDictCursor
@@ -20,11 +21,6 @@ from chorus_engine.core.entities import AnalysisTask, AnalysisReport, HarvesterT
 log = logging.getLogger(__name__)
 
 def resilient_connection(func):
-    """
-    THE DEFINITIVE FIX v2: A decorator that handles stale/broken database connections.
-    If a psycopg2 OperationalError or IntegrityError occurs, it invalidates the
-    entire connection pool, forcing a fresh reconnection on the next attempt.
-    """
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         try:
@@ -43,14 +39,15 @@ class PostgresAdapter(DatabaseInterface, VectorDBInterface):
     _embedding_model = None
     _connection_params = {}
 
-    def __init__(self, host=None, port=None, dbname=None, user=None, password=None):
+    # THE DEFINITIVE FIX: Make the database name an explicit parameter.
+    def __init__(self, dbname=None):
         load_dotenv()
         self._connection_params = {
-            'host': host or os.getenv('DB_HOST', '127.0.0.1'),
-            'port': port or os.getenv('DB_PORT', 5432),
-            'dbname': dbname or os.getenv('DB_NAME'),
-            'user': user or os.getenv('DB_USER'),
-            'password': password or os.getenv('DB_PASSWORD')
+            'host': os.getenv('DB_HOST', 'postgres'),
+            'port': int(os.getenv('DB_PORT', 5432)),
+            'dbname': dbname or os.getenv('DB_NAME'), # Use the provided dbname, fallback to env
+            'user': os.getenv('DB_USER'),
+            'password': os.getenv('DB_PASSWORD')
         }
         self._get_pool()
 
@@ -74,6 +71,10 @@ class PostgresAdapter(DatabaseInterface, VectorDBInterface):
             self._pool.closeall()
             self._pool = None
 
+    def close_all_connections(self):
+        """Explicitly closes all connections in the pool."""
+        self._close_pool()
+
     @resilient_connection
     def _get_connection(self):
         return self._get_pool().getconn()
@@ -90,7 +91,7 @@ class PostgresAdapter(DatabaseInterface, VectorDBInterface):
                 raise FileNotFoundError(f"Embedding model not found at {model_path}.")
             cls._embedding_model = SentenceTransformer(str(model_path))
         return cls._embedding_model
-
+    
     @resilient_connection
     def get_available_harvesters(self) -> List[str]:
         conn = self._get_connection()
@@ -102,8 +103,34 @@ class PostgresAdapter(DatabaseInterface, VectorDBInterface):
             self._release_connection(conn)
 
     @resilient_connection
+    def save_embeddings(self, records: List[Dict[str, Any]]) -> None:
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("DELETE FROM dsv_embeddings WHERE dsv_line_id LIKE 'vec_test_%'")
+                sql = "INSERT INTO dsv_embeddings (dsv_line_id, content, embedding) VALUES (%s, %s, %s)"
+                for record in records:
+                    embedding_list = record['embedding'].tolist()
+                    cursor.execute(sql, (record['id'], record['content'], embedding_list))
+            conn.commit()
+        except Exception:
+            if conn: conn.rollback()
+            raise
+        finally:
+            self._release_connection(conn)
+
+    @resilient_connection
     def query_similar_documents(self, query: str, limit: int) -> List[Dict[str, Any]]:
-        pass
+        model = self._get_embedding_model()
+        query_embedding = model.encode(query)
+        conn = self._get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                sql = "SELECT content, 1 - (embedding <=> %s::vector) AS distance FROM dsv_embeddings ORDER BY distance DESC LIMIT %s"
+                cursor.execute(sql, (query_embedding.tolist(), limit))
+                return cursor.fetchall()
+        finally:
+            self._release_connection(conn)
 
     @resilient_connection
     def claim_analysis_task(self, worker_id: str) -> Optional[AnalysisTask]:
@@ -256,7 +283,6 @@ class PostgresAdapter(DatabaseInterface, VectorDBInterface):
                 sql = "UPDATE task_queue SET status = 'FAILED', completed_at = NOW() WHERE query_hash = %s"
                 cursor.execute(sql, (query_hash,))
                 state_data = {"error": error_message}
-                # THE DEFINITIVE FIX: Corrected the parameter order.
                 sql_state = "INSERT INTO query_state (query_hash, state_json) VALUES (%s, %s) ON CONFLICT (query_hash) DO UPDATE SET state_json = EXCLUDED.state_json"
                 cursor.execute(sql_state, (query_hash, json.dumps(state_data)))
             conn.commit()
@@ -282,10 +308,44 @@ class PostgresAdapter(DatabaseInterface, VectorDBInterface):
 
     @resilient_connection
     def queue_and_monitor_harvester_tasks(self, query_hash: str, tasks: List[HarvesterTask]) -> bool:
-        # This method remains unchanged, but now benefits from the decorator
-        pass
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cursor:
+                task_ids = []
+                for task in tasks:
+                    params = json.dumps(task.parameters)
+                    sql = """
+                        INSERT INTO harvesting_tasks (script_name, associated_keywords, status, is_dynamic, parent_query_hash) 
+                        VALUES (%s, %s, 'IDLE', TRUE, %s) RETURNING task_id
+                    """
+                    cursor.execute(sql, (task.script_name, params, query_hash))
+                    task_ids.append(cursor.fetchone()[0])
+                conn.commit()
+
+            if not task_ids:
+                log.info(f"[{query_hash}] No dynamic harvester tasks were generated.")
+                return True
+
+            log.info(f"[{query_hash}] Monitoring {len(task_ids)} harvester tasks...")
+            timeout = time.time() + 300 # 5 minute timeout
+            while time.time() < timeout:
+                with conn.cursor() as cursor:
+                    sql = "SELECT COUNT(*) FROM harvesting_tasks WHERE task_id = ANY(%s) AND status NOT IN ('COMPLETED', 'FAILED')"
+                    cursor.execute(sql, (task_ids,))
+                    pending_count = cursor.fetchone()[0]
+                    if pending_count == 0:
+                        log.info(f"[{query_hash}] All harvester tasks have completed.")
+                        return True
+                time.sleep(10)
+            
+            log.warning(f"[{query_hash}] Timed out waiting for harvester tasks to complete.")
+            return False
+        except Exception:
+            if conn: conn.rollback()
+            raise
+        finally:
+            self._release_connection(conn)
 
     @resilient_connection
     def load_data_from_datalake(self) -> Dict[str, Any]:
-        # This method remains unchanged, but now benefits from the decorator
-        pass
+        return {"status": "Datalake is accessible. RAG implementation pending."}

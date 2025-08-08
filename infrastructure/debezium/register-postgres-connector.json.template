@@ -1,18 +1,14 @@
 {
-  "name": "chorus-postgres-connector",
-  "config": {
     "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
     "tasks.max": "1",
     "database.hostname": "postgres",
     "database.port": "5432",
-    "database.user": "trident_user",
-    "database.password": "abcd1234",
-    "database.dbname": "trident_analysis",
+    "database.user": "${DB_USER}",
+    "database.password": "${DB_PASSWORD}",
+    "database.dbname": "${DB_NAME}",
+    "database.server.name": "chorus",
     "topic.prefix": "chorus",
     "table.include.list": "public.task_queue",
-    "plugin.name": "pgoutput",
     "publication.name": "debezium_chorus_pub",
-    "publication.autocreate.mode": "disabled",
-    "slot.drop.on.stop": "true"
-  }
+    "plugin.name": "pgoutput"
 }

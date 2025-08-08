@@ -1,0 +1,6 @@
+# Filename: infrastructure/debezium/Dockerfile.setup
+# This Dockerfile creates a minimal utility image with all tools needed for setup.
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl postgresql-client && rm -rf /var/lib/apt/lists/*

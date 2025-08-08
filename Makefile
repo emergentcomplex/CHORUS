@@ -1,114 +1,112 @@
 # Filename: Makefile
-# 🔱 CHORUS Command Center (v29 - The Launch Mandate)
+# 🔱 CHORUS Command Center (v29 - Zsh Safe)
 SHELL := /bin/bash
-UV := uv
 
-DOCKER_COMPOSE := docker compose $(if $(wildcard .env),--env-file .env,)
+# --- Environment-Specific Compose Commands ---
+DOCKER_COMPOSE_DEV := docker compose --env-file .env.dev -f docker-compose.dev.yml
+DOCKER_COMPOSE_PROD := docker compose --env-file .env.prod -f docker-compose.prod.yml
+DOCKER_COMPOSE_TEST := docker compose --env-file .env.test -f docker-compose.test.yml
+DOCKER_COMPOSE_SETUP_DEV := docker compose --env-file .env.dev -f docker-compose.setup.yml
+DOCKER_COMPOSE_SETUP_PROD := docker compose --env-file .env.prod -f docker-compose.setup.yml
+DOCKER_COMPOSE_SETUP_TEST := docker compose --env-file .env.test -f docker-compose.setup.yml
 
 .DEFAULT_GOAL := help
 
-# ==============================================================================
-# HELP
-# ==============================================================================
-.PHONY: help
+.PHONY: help run-dev run-prod stop-dev stop-prod logs-dev logs-prod rebuild-dev rebuild-prod test test-fast stop-all
+
 help:
 	@echo "🔱 CHORUS Command Center"
 	@echo ""
-	@echo "Usage: make [command]"
+	@echo "--- Environment Management (Can be run concurrently) ---"
+	@echo "  run-dev        - Start the DEVELOPMENT environment (UI on port 5002)."
+	@echo "  run-prod       - Start the PRODUCTION environment (UI on port 5001)."
+	@echo "  stop-dev       - Stop and REMOVE the DEVELOPMENT environment."
+	@echo "  stop-prod      - Stop and REMOVE the PRODUCTION environment."
+	@echo "  stop-all       - Force-stop and REMOVE all CHORUS containers and networks."
+	@echo "  logs-dev       - Tail logs from the DEVELOPMENT environment."
+	@echo "  logs-prod      - Tail logs from the PRODUCTION environment."
+	@echo "  rebuild-dev    - Rebuild the DEV environment from a clean slate (deletes DB data)."
+	@echo "  rebuild-prod   - Rebuild the PROD environment from a clean slate (DELETES ALL DATA)."
 	@echo ""
-	@echo "--------------------------------------------------------------------------"
-	@echo " CORE DEVELOPMENT LIFECYCLE"
-	@echo "--------------------------------------------------------------------------"
-	@echo "  install          - Sync host dependencies for local tooling (e.g., IDEs)."
-	@echo "  launch           - (Slow Loop) Stop, rebuild the base image, and start fresh."
-	@echo "  run              - (Fast Loop) Start all services with live code mounting."
-	@echo "  stop             - Stop and remove all CHORUS services and volumes."
-	@echo "  logs             - Tail logs for all running services."
-	@echo ""
-	@echo "--------------------------------------------------------------------------"
-	@echo " VERIFICATION & ITERATION"
-	@echo "--------------------------------------------------------------------------"
-	@echo "  test             - (CI/CD) Run the full, self-contained test suite from a clean slate."
-	@echo "  test-fast        - (Local Dev) Run the full test suite against the ALREADY RUNNING dev stack."
+	@echo "--- Verification Workflow ---"
+	@echo "  test           - Run the full, hermetic test suite (can run concurrently with dev/prod)."
+	@echo "  test-fast      - Run fast unit tests against the running DEV environment."
 
-# ==============================================================================
-# CORE DEVELOPMENT LIFECYCLE
-# ==============================================================================
-.PHONY: install build launch run stop logs
-install:
-	@echo "[*] Syncing host dependencies for local tooling (e.g., IDEs)..."
-	$(UV) sync
+# --- DEVELOPMENT ENVIRONMENT ---
+run-dev:
+	@echo "[*] Building and starting DEVELOPMENT services..."
+	@$(DOCKER_COMPOSE_DEV) up -d --build --wait
+	@echo "[*] Configuring the Debezium connector for DEVELOPMENT..."
+	@$(DOCKER_COMPOSE_SETUP_DEV) run --rm setup-connector
 
-build:
-	@echo "[*] Building the base Docker image with all dependencies..."
-	$(DOCKER_COMPOSE) build
+stop-dev:
+	@echo "[*] Tearing down DEVELOPMENT environment..."
+	@$(DOCKER_COMPOSE_DEV) down --remove-orphans
 
-launch: stop build run
-	@echo "[+] Launch complete. Development environment is running."
+rebuild-dev:
+	@echo "[*] Rebuilding DEVELOPMENT environment from a clean slate..."
+	@$(DOCKER_COMPOSE_DEV) down --volumes --remove-orphans
+	@make run-dev
 
-run:
-	@echo "[*] Starting all services in DEV mode (with live code mounting)..."
-	$(DOCKER_COMPOSE) up -d --remove-orphans
+logs-dev:
+	@echo "[*] Tailing logs for DEVELOPMENT environment..."
+	@$(DOCKER_COMPOSE_DEV) logs -f
 
-stop:
-	@echo "[*] Stopping and removing all CHORUS services and volumes..."
-	$(DOCKER_COMPOSE) down -v
+# --- PRODUCTION ENVIRONMENT ---
+run-prod:
+	@echo "[*] Building and starting PRODUCTION services..."
+	@$(DOCKER_COMPOSE_PROD) up -d --build --wait
+	@echo "[*] Configuring the Debezium connector for PRODUCTION..."
+	@$(DOCKER_COMPOSE_SETUP_PROD) run --rm setup-connector
 
-logs:
-	@echo "[*] Tailing logs for all running services..."
-	$(DOCKER_COMPOSE) logs -f
+stop-prod:
+	@echo "[*] Tearing down PRODUCTION environment..."
+	@$(DOCKER_COMPOSE_PROD) down --remove-orphans
 
-# ==============================================================================
-# VERIFICATION (CI/CD - SLOW, HERMETIC)
-# ==============================================================================
-.PHONY: test
+rebuild-prod:
+	@echo "[WARNING] This will permanently delete the PRODUCTION database volume."
+	@read -p "    Are you sure you want to continue? (y/N) " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		echo "[*] Rebuilding PRODUCTION environment from a clean slate..."; \
+		$(DOCKER_COMPOSE_PROD) down --volumes --remove-orphans; \
+		make run-prod; \
+	else \
+		echo "[*] Rebuild aborted."; \
+	fi
+
+logs-prod:
+	@echo "[*] Tailing logs for PRODUCTION environment..."
+	@$(DOCKER_COMPOSE_PROD) logs -f
+
+# --- UTILITY ---
+stop-all:
+	@echo "[*] Tearing down ALL CHORUS environments completely..."
+	@$(DOCKER_COMPOSE_DEV) down --remove-orphans > /dev/null 2>&1 || true
+	@$(DOCKER_COMPOSE_PROD) down --remove-orphans > /dev/null 2>&1 || true
+	@$(DOCKER_COMPOSE_TEST) down --remove-orphans > /dev/null 2>&1 || true
+	@echo "All CHORUS environments have been torn down."
+
+# --- VERIFICATION WORKFLOW ---
+test-fast:
+	@echo "[*] Running fast unit tests against the DEVELOPMENT environment..."
+	@$(DOCKER_COMPOSE_DEV) exec chorus-web pytest --quiet tests/unit
+
 test:
-	@echo "[*] VERIFICATION: Starting full, self-contained test run..."
-	@echo "[+] Building images if necessary..."
-	$(DOCKER_COMPOSE) build
-	@echo "[+] Starting full stack (DB will auto-init if volume is new)..."
-	$(DOCKER_COMPOSE) up -d --wait --remove-orphans
-	@echo "[+] Running full test suite IN CONTAINER..."
-	$(DOCKER_COMPOSE) exec chorus-tester make test-fast
-	@echo "[*] VERIFICATION: Tearing down stack..."
-	$(DOCKER_COMPOSE) down -v
+	@echo "[*] VERIFICATION: Starting full test suite run..."
+	@echo "[INFO] This will create and destroy a temporary, isolated test environment."
+	
+	@trap '$(DOCKER_COMPOSE_TEST) down --volumes --remove-orphans > /dev/null 2>&1' EXIT
+	
+	@$(DOCKER_COMPOSE_TEST) build
+	@$(DOCKER_COMPOSE_TEST) up -d --wait
+	
+	@echo "[*] Configuring the Debezium connector for the test environment..."
+	@$(DOCKER_COMPOSE_SETUP_TEST) run --rm setup-connector
+	
+	@echo "[*] Executing the full test suite in order (Unit -> Integration -> E2E)..."
+	@$(DOCKER_COMPOSE_TEST) exec chorus-tester pytest --quiet tests/unit
+	@$(DOCKER_COMPOSE_TEST) exec chorus-tester pytest --quiet tests/integration
+	@$(DOCKER_COMPOSE_TEST) exec chorus-tester pytest --quiet tests/e2e
+	
 	@echo "\n✅ === FULL VERIFICATION SUITE PASSED === ✅"
-
-# ==============================================================================
-# ITERATION (LOCAL DEVELOPMENT - FAST)
-# ==============================================================================
-.PHONY: test-fast test-unit test-int test-e2e
-test-fast: test-unit test-int test-e2e
-	@echo "\n✅ === FAST ITERATION SUITE PASSED === ✅"
-
-test-unit:
-	@echo "[*] Running unit tests..."
-	pytest tests/unit/
-
-test-int:
-	@echo "[*] Running integration tests..."
-	make db-reset
-	make docker-register-cdc-internal
-	pytest tests/integration/
-
-test-e2e:
-	@echo "[*] Running E2E tests..."
-	make db-reset
-	make docker-register-cdc-internal
-	pytest tests/e2e/
-
-# ==============================================================================
-# DOCKER & DATABASE UTILITIES (for internal use by the test runner)
-# ==============================================================================
-.PHONY: db-reset docker-register-cdc-internal
-db-reset:
-	@echo "[*] Resetting database schema for iterative testing..."
-	# THE DEFINITIVE FIX: This command now ONLY runs the schema script.
-	# One-time setup (permissions, extensions) is handled by the container's
-	# entrypoint on first run.
-	@cat infrastructure/postgres/init.sql | psql -h postgres -U "$$DB_USER" -d "$$DB_NAME" -v ON_ERROR_STOP=1 > /dev/null
-	@echo "[+] Database schema reset."
-
-docker-register-cdc-internal:
-	@echo "[*] Registering Debezium CDC connector..."
-	@curl -s -o /dev/null -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" http://kafka-connect:8083/connectors/ -d @infrastructure/debezium/register-postgres-connector.json

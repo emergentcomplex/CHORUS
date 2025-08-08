@@ -1,0 +1,29 @@
+# Filename: docker-compose.setup.yml
+# This file defines the one-shot setup task in isolation.
+
+networks:
+  # This ensures the setup container can connect to the existing network
+  # created by the main dev, prod, or test compose files.
+  chorus-net:
+    external: true
+    name: ${COMPOSE_PROJECT_NAME}_chorus-net
+
+services:
+  setup-connector:
+    build:
+      context: .
+      dockerfile: infrastructure/debezium/Dockerfile.setup
+    image: chorus-setup-utility:latest
+    networks:
+      - chorus-net
+    # We remove the explicit depends_on, as the Makefile now controls the sequence.
+    # The script's internal polling loop will wait for kafka-connect to be ready.
+    environment:
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./infrastructure/debezium/setup-connector.sh:/tmp/setup-connector.sh
+      - ./infrastructure/debezium/register-postgres-connector.json.template:/tmp/register-postgres-connector.json.template
+    entrypoint: /bin/sh
+    command: /tmp/setup-connector.sh

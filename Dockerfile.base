@@ -1,0 +1,21 @@
+# Filename: Dockerfile.base
+# 🔱 CHORUS Stable Base Image (v4 - The Final, Correct Installation)
+# This Dockerfile builds all heavy, slow-to-change dependencies.
+
+FROM python:3.12-slim
+
+# 1. Set up the environment.
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+WORKDIR /app
+
+# 2. Install system dependencies.
+RUN apt-get update && apt-get install -y build-essential postgresql-client curl git
+
+# 3. Copy the dependency manifest.
+COPY requirements.txt .
+
+# 4. THE DEFINITIVE FIX: Install torch with its special URL first,
+#    then install the rest of the requirements.
+RUN pip install --no-cache-dir torch==2.7.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir -r requirements.txt

@@ -1,0 +1,8 @@
+# Filename: docker-compose.debug.yml
+# A temporary file for our diagnostic session.
+
+services:
+  chorus-tester:
+    volumes:
+      - ./infrastructure/debezium/setup-connector.sh:/tmp/setup-connector.sh
+      - ./infrastructure/debezium/register-postgres-connector.json.template:/tmp/register-postgres-connector.json.template

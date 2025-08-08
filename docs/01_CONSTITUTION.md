@@ -1,7 +1,9 @@
+# Filename: docs/01_CONSTITUTION.md
+
 # 🔱 The CHORUS Constitution & Architectural Blueprint
 
-_Document Version: 7.1 (The Mandate of Correction)_
-_Last Updated: 2025-08-02_
+_Document Version: 7.2 (The Mandate of Final Separation)_
+_Last Updated: 2025-08-08_
 
 ---
 
@@ -21,7 +23,7 @@ _Last Updated: 2025-08-02_
 
 ## Part 2: The Axioms of CHORUS Development
 
-_This section codifies all 59 inviolable principles, organized into a cohesive framework. All code and architectural decisions MUST adhere to these axioms._
+_This section codifies all 76 inviolable principles, organized into a cohesive framework. All code and architectural decisions MUST adhere to these axioms._
 
 ### I. Foundational Principles
 
@@ -106,3 +108,27 @@ _How we work and how we prove our work is correct. These axioms govern the devel
 57. **Axiom of True User Simulation:** End-to-end (E2E) tests MUST validate the system from the perspective of a true external user. They shall interact with the system exclusively through its public, containerized interfaces (e.g., the Web UI's HTTP endpoints) and MUST NOT directly access or manipulate internal state (e.g., the database) for test setup or execution. This ensures E2E tests validate the entire, real-world request path.
 58. **Axiom of Resilient Initialization:** All long-running services or daemons MUST NOT assume their dependencies (e.g., databases, message queues) are available at startup. Each service MUST implement a resilient, self-contained initialization loop that repeatedly attempts to establish connections to its dependencies until it succeeds. A service crashing due to a dependency not being immediately ready is a violation of this axiom.
 59. **Axiom of Connection State Pessimism:** All application code MUST treat network connections, especially those held in a pool, as ephemeral and potentially stale. Adapters responsible for persistence MUST implement automatic recovery logic that can detect a defunct connection (e.g., via an `OperationalError` or `IntegrityError`), invalidate the entire connection pool, and allow the calling operation to be retried. This places the responsibility of connection resilience on the application, not the infrastructure.
+
+### VI. Principles of Verification (from The Covenant)
+
+60. **Axiom of Comprehensive Verification:** The system's correctness must be proven at three levels: unit tests for isolated logic, integration tests for component collaboration, and end-to-end tests for the complete mission workflow. (Formerly Axiom 40)
+61. **Axiom of the Verification Pyramid:** The test suite must adhere to the Verification Pyramid strategy. The majority of tests shall be fast, isolated unit tests; a smaller layer of integration tests shall verify component collaboration; and a minimal set of E2E tests shall validate the system as a whole.
+62. **Axiom of the Four Pillars:** Every automated test must be evaluated against four pillars: it must **protect against regressions**, be **resistant to refactoring**, provide **fast feedback**, and be **maintainable**.
+63. **Axiom of Behavioral Verification:** Tests must verify the publicly observable behavior of a component, not its internal implementation details. This ensures tests are resilient to refactoring and remain valuable over time.
+64. **Axiom of Significant Logic:** Testing efforts must be focused on code containing significant business logic. Trivial code with no conditional or computational complexity (e.g., simple data containers, framework passthroughs) should not be subject to unit testing.
+65. **Axiom of Intrinsic Testability:** High-level policy must be testable without its low-level dependencies. The core logic must be testable in isolation from the UI, the database, or any external service. (Formerly Axiom 39)
+66. **Axiom of Test Double Clarity:** Test Doubles must be used with clear intent. **Stubs** shall be used to provide state and data _to_ the system under test. **Mocks** shall be used to verify interactions and outputs _from_ the system under test.
+67. **Axiom of Implementation Integrity:** The best design intentions can be destroyed by poor implementation strategy. A clean architecture must be paired with a rigorous testing strategy that verifies the system's correctness at every level. (Formerly Axiom 41)
+68. **Axiom of Provable Capability:** A component is not "done" until it is proven to be correct, performant, and resilient through a dedicated test suite. (Formerly Axiom 42)
+69. **Axiom of the Unified Environment:** All CHORUS processes—application services, utility scripts, and the test suite—MUST be executed within the canonical containerized environment. The host machine's only role is to orchestrate the containers. (Formerly Axiom 51)
+70. **Axiom of the Dual-Mode Harness:** The development harness MUST provide two distinct, clearly-defined modes: a **Verification Mode** (`make test`) that is slow, hermetic, and guarantees correctness from a clean slate for CI/CD; and an **Iteration Mode** (`make run` + `make test-fast`) that is optimized for rapid, sub-second feedback for local developers. (Formerly Axiom 52)
+71. **Axiom of Hermetic Verification:** The primary verification target (`make test`) MUST be a self-contained, atomic operation. It is responsible for the entire lifecycle of its execution: building the environment, starting all services, running all setup scripts, executing the full test suite, and tearing down the environment. (Formerly Axiom 55)
+72. **Axiom of True User Simulation:** End-to-end (E2E) tests MUST validate the system from the perspective of a true external user. They shall interact with the system exclusively through its public, containerized interfaces (e.g., the Web UI's HTTP endpoints). (Formerly Axiom 57)
+73. **Axiom of Mandated Regression Testing:** No bug shall be considered fixed until a new, automated test is created that verifiably reproduces the failure. The development process for any bug fix is hereby mandated as: 1. **Replicate:** Create a new test that fails. 2. **Remediate:** Implement the code changes. 3. **Verify:** Confirm that the new test and all existing tests now pass. (Formerly Axiom 56)
+74. **Axiom of Resilient Initialization:** All long-running services or daemons MUST NOT assume their dependencies are available at startup. Each service MUST implement a resilient, self-contained initialization loop that repeatedly attempts to establish connections to its dependencies until it succeeds. (Formerly Axiom 58)
+75. **Axiom of Connection State Pessimism:** All application code MUST treat network connections, especially those held in a pool, as ephemeral and potentially stale. Persistence adapters MUST implement automatic recovery logic to detect and recover from defunct connections. (Formerly Axiom 59)
+
+### VII. Principles of Environmental Architecture
+
+76. **Axiom of Environmental Independence:** Each operational environment (`production`, `development`, `testing`) MUST be defined in its own dedicated, self-contained, and fully explicit configuration file. The use of complex override chains to define distinct environments is forbidden. The system's orchestration layer is responsible for selecting and executing the appropriate, complete configuration for a given task.
+    - **Justification:** This axiom codifies the primary lesson from the "Great Spiral of Failure." It makes explicit the requirement for independent configurations, preventing the ambiguity and unpredictable behavior of file merging. It reinforces the **Axiom of Canonical Simplicity** by ensuring that the configuration for any given environment is located in a single, authoritative file.

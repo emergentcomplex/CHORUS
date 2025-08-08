@@ -1,6 +1,5 @@
 # Filename: tests/unit/test_web_ui.py
-#
-# Unit tests for the Web UI (Flask application).
+# Unit tests for the Web UI (Flask application), compatible with lazy-loading.
 
 import pytest
 import json
@@ -16,8 +15,12 @@ def client():
     with app.test_client() as client:
         yield client
 
-@patch('chorus_engine.infrastructure.web.web_ui.redis_adapter.get_all_tasks_sorted_by_time', return_value=[])
-def test_dashboard_get_request(mock_redis_tasks, client):
+@patch('chorus_engine.infrastructure.web.web_ui.get_redis')
+def test_dashboard_get_request(mock_get_redis, client):
+    mock_redis_adapter = MagicMock()
+    mock_redis_adapter.get_all_tasks_sorted_by_time.return_value = []
+    mock_get_redis.return_value = mock_redis_adapter
+    
     response = client.get('/')
     assert response.status_code == 200
     assert b"Queue New Analysis" in response.data
@@ -30,36 +33,47 @@ def test_dashboard_post_queues_task(mock_queue_new_query, client):
     assert response.status_code == 302
     assert response.location == '/query/a_new_query_hash'
 
-@patch('chorus_engine.adapters.persistence.redis_adapter.RedisAdapter.get_task_by_hash')
-def test_query_details_page(mock_get_task, client):
-    mock_get_task.return_value = {'query_hash': 'a_known_hash', 'status': 'COMPLETED'}
+@patch('chorus_engine.infrastructure.web.web_ui.get_redis')
+def test_query_details_page(mock_get_redis, client):
+    mock_redis_adapter = MagicMock()
+    mock_redis_adapter.get_task_by_hash.return_value = {'query_hash': 'a_known_hash', 'status': 'COMPLETED'}
+    mock_get_redis.return_value = mock_redis_adapter
+    
     response = client.get('/query/a_known_hash')
     assert response.status_code == 200
     assert b"Session ID: a_known_hash" in response.data
 
-@patch('chorus_engine.adapters.persistence.redis_adapter.RedisAdapter.get_task_by_hash')
-def test_query_details_not_found(mock_get_task, client):
-    mock_get_task.return_value = None
+@patch('chorus_engine.infrastructure.web.web_ui.get_redis')
+def test_query_details_not_found(mock_get_redis, client):
+    mock_redis_adapter = MagicMock()
+    mock_redis_adapter.get_task_by_hash.return_value = None
+    mock_get_redis.return_value = mock_redis_adapter
+    
     response = client.get('/query/an_unknown_hash')
     assert response.status_code == 404
 
-@patch('chorus_engine.adapters.persistence.redis_adapter.RedisAdapter.get_all_tasks_sorted_by_time')
-def test_htmx_update_dashboard(mock_get_all_tasks, client):
-    mock_get_all_tasks.return_value = [
+@patch('chorus_engine.infrastructure.web.web_ui.get_redis')
+def test_htmx_update_dashboard(mock_get_redis, client):
+    mock_redis_adapter = MagicMock()
+    mock_redis_adapter.get_all_tasks_sorted_by_time.return_value = [
         {'query_hash': 'hash1', 'user_query': '{"query": "Test Query 1"}', 'status': 'COMPLETED', 'created_at': '2025-08-01T12:00:00', 'worker_id': 'worker-a'}
     ]
+    mock_get_redis.return_value = mock_redis_adapter
+    
     response = client.get('/update_dashboard')
     assert response.status_code == 200
     assert b"Test Query 1" in response.data
 
-@patch('chorus_engine.infrastructure.web.web_ui.db_adapter')
+@patch('chorus_engine.infrastructure.web.web_ui.get_db')
 @patch('chorus_engine.infrastructure.web.web_ui.get_report_raw_text')
-def test_htmx_update_report(mock_get_report, mock_db_adapter, client):
+def test_htmx_update_report(mock_get_report, mock_get_db, client):
+    mock_db_adapter = MagicMock()
     mock_db_adapter.get_analyst_reports.return_value = [
         {'persona_id': 'analyst_hawk', 'report_text': 'Hawk Report'}
     ]
     mock_db_adapter.get_director_briefing.return_value = {'briefing_text': 'Director Briefing'}
-    # THE DEFINITIVE FIX: Provide a mock that satisfies all regexes in the controller.
+    mock_get_db.return_value = mock_db_adapter
+    
     mock_get_report.return_value = """
     [NARRATIVE ANALYSIS]
     Test narrative.

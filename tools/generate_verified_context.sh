@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# 🔱 CHORUS Verified Context Generator (v2.2 - Docs Excluded)
+# 🔱 CHORUS Verified Context Generator (v3.0 - The Signal Purity Mandate)
 #
-# This script generates a single, definitive context file for bootstrapping
-# an AI development session. It is self-contained and can be run from any directory.
+# This script generates a single, definitive context file of the codebase.
+# It is designed to be called by the main `generate_context.sh` script.
 
 set -e
 
@@ -11,39 +11,50 @@ set -e
 cd "$(dirname "$0")/.."
 
 # --- Definitive Fix: Use a temporary file for output ---
-# This prevents the script from excluding its own output file.
 OUTPUT_FILE=$(mktemp)
 
-# Define patterns for `tree`'s -I flag
-TREE_EXCLUDE_PATTERN='venv|.git|datalake|models|__pycache__|*.pyc|*.md|*.sql|*CONTEXT*.txt|*.log|chorus.egg-info|docs_build'
-
-# Define patterns for the `find` command
+# --- THE DEFINITIVE FIX: Refined and explicit exclusion patterns ---
+# This list is designed to capture ONLY the essential source code and
+# configuration, and to exclude all high-level documentation (handled by the
+# main script) and irrelevant artifacts.
 FIND_EXCLUDE_PATTERNS=(
+    # Version control and local environment
     -path './.git' -o \
     -path './.venv' -o \
-    -path './chorus_engine/datalake' -o \
-    -path './models' -o \
     -path './.pytest_cache' -o \
     -path './__pycache__' -o \
+    -path './tests/e2e/__pycache__' -o \
+    # High-level documentation (handled by the main script)
+    -path './docs' -o \
+    -path './documentation' -o \
+    # Build artifacts and caches
     -path './chorus.egg-info' -o \
     -path './docs_build' -o \
-    -name '*.pyc' -o \
+    # Runtime data and logs (not part of the core logic)
+    -path './datalake' -o \
+    -path './logs' -o \
+    -path './models' -o \
+    # Specific non-essential files
+    -name '.python-version' -o \
+    -name 'LICENSE' -o \
+    -name '*.log' -o \
     -name '*.md' -o \
     -name '*.sql' -o \
-    -name '*.bak' -o \
-    -name '*.log' -o \
-    -name 'uv.lock' -o \
     -name '.env' -o \
-    -name '*.txt' \
+    -name '*.pyc' -o \
+    -name '*.json' -o \
+    -name 'uv.lock' \
 )
 
 # --- Header ---
 echo "# 🔱 CHORUS Verifiable Codebase Context" > "$OUTPUT_FILE"
 echo "# Generated on: $(date)" >> "$OUTPUT_FILE"
-echo "# This context represents the complete ground truth of the repository." >> "$OUTPUT_FILE"
+echo "# This context represents the complete ground truth of the repository's source code." >> "$OUTPUT_FILE"
 
 # --- Part 1: Directory Structure ---
 echo -e "\n\n--- PART 1: DIRECTORY STRUCTURE ---\n" >> "$OUTPUT_FILE"
+# Exclude the same patterns from the tree view for consistency.
+TREE_EXCLUDE_PATTERN=$(echo "${FIND_EXCLUDE_PATTERNS[@]}" | sed "s/-path '\.\///g" | sed "s/' -o /|/g" | sed "s/'//g" | sed "s/ //g")
 tree -I "$TREE_EXCLUDE_PATTERN" >> "$OUTPUT_FILE"
 
 # --- Part 2: File Contents ---

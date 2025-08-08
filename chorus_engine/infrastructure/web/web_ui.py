@@ -1,5 +1,5 @@
 # Filename: chorus_engine/infrastructure/web/web_ui.py
-# Filename: chorus_engine/infrastructure/web/web_ui.py (Adversarial Council UI)
+# 🔱 CHORUS Web UI (v5 - Hardened Error Logging)
 import json
 import os
 import hashlib
@@ -29,13 +29,13 @@ template_dir = project_root / 'templates'
 static_dir = template_dir / 'static'
 
 setup_logging()
+log = logging.getLogger(__name__)
 sli_logger = logging.getLogger('sli')
 
 app = Flask(__name__, template_folder=str(template_dir), static_folder=str(static_dir))
 app.secret_key = os.urandom(24)
 htmx = Htmx(app)
 
-# THE DEFINITIVE FIX: Register the markdown filter.
 @app.template_filter('markdown')
 def markdown_filter(s):
     return markdown.markdown(s)
@@ -46,13 +46,12 @@ task_queue_gauge = Gauge(
     'Number of tasks in the queue by status',
     ['status']
 )
-redis_adapter = RedisAdapter()
-db_adapter = PostgresAdapter()
 
 def update_custom_metrics():
+    redis_adapter_thread = RedisAdapter()
     while True:
         try:
-            all_tasks = redis_adapter.get_all_tasks_sorted_by_time()
+            all_tasks = redis_adapter_thread.get_all_tasks_sorted_by_time()
             status_counts = Counter(task.get('status', 'UNKNOWN') for task in all_tasks)
             statuses = {'PENDING': 0, 'IN_PROGRESS': 0, 'COMPLETED': 0, 'FAILED': 0}
             statuses.update(status_counts)
@@ -88,27 +87,52 @@ def log_request_latency(response):
         )
     return response
 
+def get_db():
+    if 'db' not in g:
+        g.db = PostgresAdapter()
+    return g.db
+
+def get_redis():
+    if 'redis' not in g:
+        g.redis = RedisAdapter()
+    return g.redis
+
+@app.teardown_appcontext
+def teardown_db(exception):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close_all_connections()
+    g.pop('redis', None)
+
 def queue_new_query(query_text, mode='deep_dive'):
-    conn = db_adapter._get_connection()
-    if not conn: return None
-    query_data = {"query": query_text, "mode": mode}
-    query_hash = hashlib.md5(json.dumps(query_data, sort_keys=True).encode()).hexdigest()
+    db_adapter = get_db()
+    conn = None
     try:
+        conn = db_adapter._get_connection()
+        if not conn:
+            log.critical("FATAL: Failed to get a database connection from the pool.")
+            return None
+        
+        query_data = {"query": query_text, "mode": mode}
+        query_hash = hashlib.md5(json.dumps(query_data, sort_keys=True).encode()).hexdigest()
+        
         with conn.cursor() as cursor:
-            # THE DEFINITIVE FIX: The SQL statement now correctly includes the 'status'
-            # column and sets it to the required initial state for the pipeline.
             sql = "INSERT INTO task_queue (user_query, query_hash, status) VALUES (%s, %s, 'PENDING_ANALYSIS') ON CONFLICT (query_hash) DO NOTHING"
             cursor.execute(sql, (json.dumps(query_data), query_hash))
-            conn.commit()
-            return query_hash
+        conn.commit()
+        log.info(f"Successfully queued task with hash: {query_hash}")
+        return query_hash
     except Exception as e:
-        logging.error(f"An exception occurred while queueing the task: {e}")
-        conn.rollback()
+        log.error(f"CRITICAL: Database error while queueing new task: {e}", exc_info=True)
+        if conn:
+            conn.rollback()
         return None
     finally:
-        db_adapter._release_connection(conn)
+        if conn:
+            db_adapter._release_connection(conn)
 
 def get_report_raw_text(query_hash: str):
+    db_adapter = get_db()
     conn = db_adapter._get_connection()
     if not conn: return None
     try:
@@ -135,18 +159,21 @@ def dashboard():
         mode = request.form.get("mode")
         if query_text:
             new_hash = queue_new_query(query_text, mode=mode)
-            if new_hash: return redirect(url_for('query_details', query_hash=new_hash))
+            if new_hash:
+                return redirect(url_for('query_details', query_hash=new_hash))
+            else:
+                flash("Error: Could not queue the analysis task. Please check the system logs.", "error")
     return render_template('dashboard.html')
 
 @app.route("/query/<query_hash>")
 def query_details(query_hash):
-    task = redis_adapter.get_task_by_hash(query_hash)
+    task = get_redis().get_task_by_hash(query_hash)
     if not task: abort(404)
     return render_template('details.html', task=task, query_hash=query_hash)
 
 @app.route("/update_dashboard")
 def update_dashboard():
-    all_tasks = redis_adapter.get_all_tasks_sorted_by_time()
+    all_tasks = get_redis().get_all_tasks_sorted_by_time()
     status_counts = Counter(task.get('status', 'UNKNOWN').lower() for task in all_tasks)
     task_counts = {
         'pending': status_counts.get('pending', 0) + status_counts.get('pending_analysis', 0),
@@ -166,6 +193,7 @@ def update_dashboard():
 
 @app.route("/update_report/<query_hash>")
 def update_report(query_hash):
+    db_adapter = get_db()
     progress_updates, final_report_data = [], None
     analyst_reports = db_adapter.get_analyst_reports(query_hash)
     director_briefing = db_adapter.get_director_briefing(query_hash)

@@ -1,4 +1,5 @@
 # Filename: docs/06_CHARTER_OF_ENVIRONMENTAL_STABILITY.md
+
 # 🔱 The Charter of Environmental Stability
 
 _Document Version: 1.0_
@@ -20,7 +21,7 @@ _Last Updated: 2025-08-08_
 
 _These Axioms are to be considered an extension of the main CHORUS Constitution._
 
-**77. Axiom of Configuration Precedence:** The configuration defined *inside* a Docker Compose file (e.g., in an `environment` block) is the absolute, final authority for that service's runtime environment. It MUST take precedence over any and all external sources, including `.env` files and host machine shell variables. Test environments, in particular, MUST be architecturally incapable of being polluted by their host.
+**77. Axiom of Configuration Precedence:** The configuration defined _inside_ a Docker Compose file (e.g., in an `environment` block) is the absolute, final authority for that service's runtime environment. It MUST take precedence over any and all external sources, including `.env` files and host machine shell variables. Test environments, in particular, MUST be architecturally incapable of being polluted by their host.
 
 **78. Axiom of Explicit Naming:** All resources that could conflict between concurrent environments (containers, networks, volumes) MUST be given a globally unique name. This name MUST be programmatically derived from the environment's unique project name (e.g., `chorus-dev-postgres`). Relying on Docker's default, transient naming for concurrent operations is a proven anti-pattern.
 

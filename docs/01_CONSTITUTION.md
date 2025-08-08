@@ -2,7 +2,7 @@
 
 # 🔱 The CHORUS Constitution & Architectural Blueprint
 
-_Document Version: 7.2 (The Mandate of Final Separation)_
+_Document Version: 8.0 (The Mandate of Stability)_
 _Last Updated: 2025-08-08_
 
 ---
@@ -23,7 +23,7 @@ _Last Updated: 2025-08-08_
 
 ## Part 2: The Axioms of CHORUS Development
 
-_This section codifies all 76 inviolable principles, organized into a cohesive framework. All code and architectural decisions MUST adhere to these axioms._
+_This section codifies all 81 inviolable principles, organized into a cohesive framework. All code and architectural decisions MUST adhere to these axioms._
 
 ### I. Foundational Principles
 
@@ -127,8 +127,14 @@ _How we work and how we prove our work is correct. These axioms govern the devel
 73. **Axiom of Mandated Regression Testing:** No bug shall be considered fixed until a new, automated test is created that verifiably reproduces the failure. The development process for any bug fix is hereby mandated as: 1. **Replicate:** Create a new test that fails. 2. **Remediate:** Implement the code changes. 3. **Verify:** Confirm that the new test and all existing tests now pass. (Formerly Axiom 56)
 74. **Axiom of Resilient Initialization:** All long-running services or daemons MUST NOT assume their dependencies are available at startup. Each service MUST implement a resilient, self-contained initialization loop that repeatedly attempts to establish connections to its dependencies until it succeeds. (Formerly Axiom 58)
 75. **Axiom of Connection State Pessimism:** All application code MUST treat network connections, especially those held in a pool, as ephemeral and potentially stale. Persistence adapters MUST implement automatic recovery logic to detect and recover from defunct connections. (Formerly Axiom 59)
+76. **Axiom of Environmental Independence:** Each operational environment (`production`, `development`, `testing`) MUST be defined in its own dedicated, self-contained, and fully explicit configuration file. The use of complex override chains to define distinct environments is forbidden. The system's orchestration layer is responsible for selecting and executing the appropriate, complete configuration for a given task.
 
 ### VII. Principles of Environmental Architecture
 
-76. **Axiom of Environmental Independence:** Each operational environment (`production`, `development`, `testing`) MUST be defined in its own dedicated, self-contained, and fully explicit configuration file. The use of complex override chains to define distinct environments is forbidden. The system's orchestration layer is responsible for selecting and executing the appropriate, complete configuration for a given task.
-    - **Justification:** This axiom codifies the primary lesson from the "Great Spiral of Failure." It makes explicit the requirement for independent configurations, preventing the ambiguity and unpredictable behavior of file merging. It reinforces the **Axiom of Canonical Simplicity** by ensuring that the configuration for any given environment is located in a single, authoritative file.
+_These Axioms are the direct result of the "Great Spiral of Failure" and are codified in the Charter of Environmental Stability. They are the supreme law governing the project's infrastructure._
+
+77. **Axiom of Configuration Precedence:** The configuration defined _inside_ a Docker Compose file (e.g., in an `environment` block) is the absolute, final authority for that service's runtime environment. It MUST take precedence over any and all external sources, including `.env` files and host machine shell variables. Test environments, in particular, MUST be architecturally incapable of being polluted by their host.
+78. **Axiom of Explicit Naming:** All resources that could conflict between concurrent environments (containers, networks, volumes) MUST be given a globally unique name. This name MUST be programmatically derived from the environment's unique project name (e.g., `chorus-dev-postgres`). Relying on Docker's default, transient naming for concurrent operations is a proven anti-pattern.
+79. **Axiom of Idempotent Orchestration:** All primary `make` targets for starting an environment (e.g., `make run-dev`) MUST be idempotent. They must be architecturally designed to produce the exact same healthy, running state, regardless of the system's state before the command was run. This is achieved by ensuring the first step of any "up" command is a complete and robust "down" command for that specific environment.
+80. **Axiom of Headless Verification:** The primary verification environment (`test`) MUST be completely headless. It shall not expose any ports to the host machine. This architecturally guarantees that it can run concurrently with any other environment without any possibility of a network port conflict.
+81. **Axiom of Infrastructure Sanctity:** The core infrastructure configuration files (`Makefile`, all `docker-compose.*.yml` files, all `.env.*` files) are now considered a stable, verified baseline. They shall not be modified unless a new mission explicitly and justifiably requires an infrastructure change. Any proposed change to these files must be treated with the highest level of scrutiny and be accompanied by a formal amendment proposal.

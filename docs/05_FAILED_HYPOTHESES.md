@@ -71,24 +71,28 @@ _This document is a core part of our systemic learning process, fulfilling **Axi
 - **The Ground Truth (The Reason for Failure):** Docker Compose's file merging logic is designed for minor tweaks, not for defining fundamentally distinct architectures. It creates a complex, implicit dependency graph where the final configuration is non-obvious and prone to subtle, cascading failures. This directly violates the **Axiom of Canonical Simplicity (Axiom 53)**.
 - **The Lesson:** Truly distinct environments require truly distinct, self-contained, and explicit configuration files. The orchestrator (the `Makefile`) should be responsible for choosing which single, complete configuration to execute, eliminating all ambiguity and implicit dependencies.
 
-
 **Hypothesis #10: The Static `container_name` Directive is a Panacea.**
+
 - **The Flawed Belief:** Manually setting `container_name` in the Compose files would solve all concurrency issues.
 - **The Manifestation (The Error):** `Conflict. The container name ... is already in use`.
-- **The Ground Truth (The Reason for Failure):** While `container_name` provides uniqueness, it creates static, inflexible names. The true root cause was a race condition in the `Makefile`'s orchestration, where the `down` command for one environment had not fully released its resources before the `up` command for another began. The static names made this race condition *more* likely to cause a hard conflict.
+- **The Ground Truth (The Reason for Failure):** While `container_name` provides uniqueness, it creates static, inflexible names. The true root cause was a race condition in the `Makefile`'s orchestration, where the `down` command for one environment had not fully released its resources before the `up` command for another began. The static names made this race condition _more_ likely to cause a hard conflict.
 - **The Lesson:** The orchestration layer (`Makefile`) must be robust first. It must guarantee a clean slate before starting any environment. The solution was not static names, but idempotent `run` commands.
 
 **Hypothesis #11: The Host Environment is Benign.**
+
 - **The Flawed Belief:** The test environment, when run inside a container, would be naturally isolated from the host machine's shell environment.
 - **The Manifestation (The Error):** `connection to server at "postgres", port 5434 failed`. The test suite was trying to connect to the `dev` database port, not the `test` database port.
 - **The Ground Truth (The Reason for Failure):** Docker Compose's `env_file` directive has a lower precedence than variables already present in the shell environment where the `docker compose` command is run. A `DB_PORT=5434` variable on the host machine "leaked" into the test container, overriding the correct settings from `.env.test`.
-- **The Lesson:** A test environment is not hermetic unless it is *architecturally incapable* of being polluted. The definitive solution is to set critical variables directly in the `docker-compose.test.yml` file's `environment` block, as this has the highest precedence and guarantees true isolation.
+- **The Lesson:** A test environment is not hermetic unless it is _architecturally incapable_ of being polluted. The definitive solution is to set critical variables directly in the `docker-compose.test.yml` file's `environment` block, as this has the highest precedence and guarantees true isolation.
 
 **Hypothesis #12: A Simple Typo is Not a Systemic Failure.**
+
 - **The Flawed Belief:** A simple typo, like a mismatched `.env` file project name or a YAML syntax error, is a minor issue.
 - **The Manifestation (The Error):** The entire "Great Spiral of Failure."
 - **The Ground Truth (The Reason for Failure):** In a complex, multi-environment system, a single configuration error can create cascading failures that present as deep, complex architectural problems. The `COMPOSE_PROJECT_NAME` mismatch in `.env.prod` was the true root cause of many of the container name conflicts.
 - **The Lesson:** All configuration is code. It must be treated with the same rigor, scrutiny, and verification as application code. Suspect the simplest possible error first.
+
+---
 
 ### **Part 2: Anti-Patterns of Praxis (Flawed Methodologies)**
 

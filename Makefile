@@ -1,6 +1,7 @@
 # Filename: Makefile
-# 🔱 CHORUS Command Center (v33 - Explicit Base Build)
+# 🔱 CHORUS Command Center (v37 - Definitive Lock)
 SHELL := /bin/bash
+LOCK_DIR := .run.lock
 
 # --- Environment-Specific Compose Commands ---
 DOCKER_COMPOSE_DEV := docker compose --env-file .env.dev -f docker-compose.dev.yml
@@ -27,7 +28,7 @@ help:
 	@echo "--- Verification & Testing ---"
 	@echo "  test           - Run the full, hermetic test suite for CI/CD."
 	@echo "  test-fast      - Run fast unit tests against the running DEV environment."
-	@echo "  test-journey   - (FINAL VERIFICATION) Verify the complete user journey from UI to Redis."
+	@echo "  test-journey   - Verify the complete user journey from UI to Redis."
 
 # --- CORE BUILD STEP ---
 build-base:
@@ -36,10 +37,20 @@ build-base:
 
 # --- DEVELOPMENT ENVIRONMENT ---
 run-dev: build-base
+	@echo "[DEV] Attempting to acquire lock..."
+	@while ! mkdir $(LOCK_DIR) >/dev/null 2>&1; do \
+		echo "[DEV] Waiting for another CHORUS operation to complete..."; \
+		sleep 5; \
+	done
+	@trap 'rm -rf $(LOCK_DIR)' EXIT
+	@echo "[DEV] Lock acquired. Proceeding with startup."
+	@echo "[*] Ensuring a clean slate for the DEVELOPMENT environment..."
+	@$(DOCKER_COMPOSE_DEV) down --remove-orphans
 	@echo "[*] Building and starting DEVELOPMENT services..."
 	@$(DOCKER_COMPOSE_DEV) up -d --build --wait
 	@echo "[*] Configuring the Debezium connector for DEVELOPMENT..."
 	@$(DOCKER_COMPOSE_SETUP_DEV) run --rm setup-connector
+	@echo "[DEV] Startup complete. Releasing lock."
 
 stop-dev:
 	@echo "[*] Tearing down DEVELOPMENT environment..."
@@ -56,10 +67,20 @@ logs-dev:
 
 # --- PRODUCTION ENVIRONMENT ---
 run-prod: build-base
+	@echo "[PROD] Attempting to acquire lock..."
+	@while ! mkdir $(LOCK_DIR) >/dev/null 2>&1; do \
+		echo "[PROD] Waiting for another CHORUS operation to complete..."; \
+		sleep 5; \
+	done
+	@trap 'rm -rf $(LOCK_DIR)' EXIT
+	@echo "[PROD] Lock acquired. Proceeding with startup."
+	@echo "[*] Ensuring a clean slate for the PRODUCTION environment..."
+	@$(DOCKER_COMPOSE_PROD) down --remove-orphans
 	@echo "[*] Building and starting PRODUCTION services..."
 	@$(DOCKER_COMPOSE_PROD) up -d --build --wait
 	@echo "[*] Configuring the Debezium connector for PRODUCTION..."
 	@$(DOCKER_COMPOSE_SETUP_PROD) run --rm setup-connector
+	@echo "[PROD] Startup complete. Releasing lock."
 
 stop-prod:
 	@echo "[*] Tearing down PRODUCTION environment..."
@@ -71,6 +92,7 @@ stop-all:
 	@$(DOCKER_COMPOSE_DEV) down --remove-orphans > /dev/null 2>&1 || true
 	@$(DOCKER_COMPOSE_PROD) down --remove-orphans > /dev/null 2>&1 || true
 	@$(DOCKER_COMPOSE_TEST) down --remove-orphans > /dev/null 2>&1 || true
+	@rm -rf $(LOCK_DIR)
 	@echo "All CHORUS environments have been torn down."
 
 # --- VERIFICATION WORKFLOW ---

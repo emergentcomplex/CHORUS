@@ -1,5 +1,5 @@
 # Filename: docker-compose.test.yml
-# 🔱 CHORUS VERIFICATION ENVIRONMENT (v6 - DNS Corrected)
+# 🔱 CHORUS VERIFICATION ENVIRONMENT (v12 - Definitive Headless)
 
 networks:
   chorus-net:
@@ -14,13 +14,13 @@ x-chorus-app: &chorus-app
     - .:/app
     - ./datalake:/app/datalake
     - ./logs:/app/logs
-  # THE DEFINITIVE FIX: Add a public DNS to ensure external connectivity.
   dns:
     - 8.8.8.8
 
 services:
   postgres:
     image: pgvector/pgvector:pg16
+    container_name: ${COMPOSE_PROJECT_NAME}-postgres
     hostname: postgres
     networks: [chorus-net]
     environment:
@@ -40,6 +40,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    container_name: ${COMPOSE_PROJECT_NAME}-redis
     hostname: redis
     networks: [chorus-net]
     healthcheck:
@@ -50,6 +51,7 @@ services:
 
   redpanda:
     image: docker.redpanda.com/redpandadata/redpanda:v23.1.2
+    container_name: ${COMPOSE_PROJECT_NAME}-redpanda
     hostname: redpanda
     networks: [chorus-net]
     command:
@@ -66,6 +68,7 @@ services:
 
   kafka-connect:
     image: debezium/connect:2.7.3.Final
+    container_name: ${COMPOSE_PROJECT_NAME}-kafka-connect
     hostname: kafka-connect
     networks: [chorus-net]
     depends_on:
@@ -89,28 +92,33 @@ services:
 
   chorus-web:
     <<: *chorus-app
+    container_name: ${COMPOSE_PROJECT_NAME}-chorus-web
     command:
       ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "wsgi:app"]
     depends_on: [postgres, redis]
 
   chorus-launcher:
     <<: *chorus-app
+    container_name: ${COMPOSE_PROJECT_NAME}-chorus-launcher
     command: ["python", "-m", "chorus_engine.infrastructure.daemons.launcher"]
     depends_on: [postgres]
 
   chorus-synthesis-daemon:
     <<: *chorus-app
+    container_name: ${COMPOSE_PROJECT_NAME}-chorus-synthesis-daemon
     command:
       ["python", "-m", "chorus_engine.infrastructure.daemons.synthesis_daemon"]
     depends_on: [postgres]
 
   chorus-sentinel:
     <<: *chorus-app
+    container_name: ${COMPOSE_PROJECT_NAME}-chorus-sentinel
     command: ["python", "-m", "chorus_engine.infrastructure.daemons.sentinel"]
     depends_on: [postgres]
 
   chorus-stream-processor:
     <<: *chorus-app
+    container_name: ${COMPOSE_PROJECT_NAME}-chorus-stream-processor
     command:
       [
         "python",
@@ -123,6 +131,7 @@ services:
 
   chorus-tester:
     <<: *chorus-app
+    container_name: ${COMPOSE_PROJECT_NAME}-chorus-tester
     command: ["sleep", "infinity"]
     depends_on:
       - chorus-web

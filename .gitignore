@@ -31,3 +31,4 @@ chorus.egg-info/
 .env.bak
 .env-threaded
 *.egg-info/
+.secrets

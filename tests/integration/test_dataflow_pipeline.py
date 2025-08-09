@@ -68,6 +68,11 @@ def test_database_write_materializes_in_redis(db_adapter, redis_client):
     
     # Verify the content of the materialized state
     assert redis_state.get('query_hash') == query_hash
-    assert redis_state.get('status') == 'PENDING_ANALYSIS'
+    
+    # THE DEFINITIVE FIX: The test must be resilient to the launcher daemon's correct behavior.
+    # The status can be either the initial state or the state after the daemon claims it.
+    # Both are valid outcomes for a successful dataflow.
+    assert redis_state.get('status') in ['PENDING_ANALYSIS', 'ANALYSIS_IN_PROGRESS']
+    
     assert json.loads(redis_state.get('user_query')) == user_query_data
     print("[+] SUCCESS: End-to-end dataflow pipeline verified.")

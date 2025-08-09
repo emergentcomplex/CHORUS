@@ -1,5 +1,5 @@
 # Filename: Dockerfile
-# 🔱 CHORUS Application Image (Correct Permissions)
+# 🔱 CHORUS Application Image (v3 - Correct Cache Permissions)
 
 FROM chorus-base:latest
 
@@ -7,8 +7,7 @@ FROM chorus-base:latest
 WORKDIR /app
 RUN useradd -m appuser
 
-# 2. THE DEFINITIVE FIX: Create mount points and set ownership *before* copying.
-# This ensures that even when volumes are mounted, the base directories are owned by appuser.
+# 2. Create mount points and set ownership *before* copying.
 RUN mkdir -p /app/datalake /app/logs /app/.pytest_cache && \
     chown -R appuser:appuser /app
 
@@ -21,4 +20,8 @@ COPY --chown=appuser:appuser . .
 # 5. Install the application itself into the existing environment.
 RUN pip install --no-cache-dir --no-deps .
 
-# The default command is inherited from the base image or set in docker-compose.
+# THE DEFINITIVE FIX (PART 2): Ensure the cache directory exists and is owned by appuser.
+# This command runs as appuser, guaranteeing correct permissions.
+RUN mkdir -p /app/.pytest_cache
+
+# The default command is set in docker-compose.

@@ -5,8 +5,8 @@
 FROM python:3.12-slim
 
 # 1. Set up the environment.
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # 2. Install system dependencies.

@@ -1,18 +1,19 @@
 # Filename: .github/workflows/ci_cd.yml
 #
-# 🔱 The CHORUS Constitutional CI/CD Gatekeeper
+# 🔱 The CHORUS Constitutional CI/CD Gatekeeper (v14 - The Mandate of Complete Configuration)
 #
-# This workflow enforces the project's quality and architectural standards
-# by running the complete, hermetic verification suite on every pull request.
-# Adherence to this check is mandatory for merging, as per the Constitution.
+# This workflow is the definitive, robust solution. It completely bypasses
+# the faulty `docker compose build` command in the CI context by using
+# primitive `docker build` commands and then running the services from
+# the pre-built images. It now includes the complete environment configuration.
 
 name: CHORUS CI/CD Gatekeeper
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   validate-and-test:
@@ -23,14 +24,49 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Compose
-        uses: docker/setup-buildx-action@v3
+      - name: Create Test Environment File
+        # THE DEFINITIVE FIX: Provide ALL necessary environment variables for the
+        # test services, especially the PostgreSQL container, to initialize correctly.
+        run: |
+          echo "COMPOSE_PROJECT_NAME=chorus-test" > .env.test
+          echo "DB_HOST=postgres" >> .env.test
+          echo "DB_PORT=5432" >> .env.test
+          echo "DB_USER=trident_user" >> .env.test
+          echo "DB_PASSWORD=abcd1234" >> .env.test
+          echo "DB_NAME=trident_analysis_test" >> .env.test
+          echo "REDIS_HOST=redis" >> .env.test
+          echo "REDIS_PORT=6379" >> .env.test
+          echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> .env.test
 
-      - name: Run Hermetic Test Suite (make test)
-        # This is the single, canonical command to run the entire verification suite.
-        # It builds, starts, sets up, tests, and tears down the entire system.
-        # We pass the GOOGLE_API_KEY as a secret, which is required for E2E tests.
-        # The .env file is intentionally not checked in; secrets are managed by GitHub.
-        run: make test
-        env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      - name: 1. Validate Constitution
+        run: make validate
+
+      - name: 2. Clean Docker Environment
+        run: make stop-all
+
+      - name: 3. Build All Images Explicitly
+        run: |
+          # Use the primitive, reliable `docker build` command.
+          docker build -f Dockerfile.base -t chorus-base:latest .
+          docker build -f Dockerfile -t chorus-app:test .
+          docker build -f infrastructure/debezium/Dockerfile.setup -t chorus-setup-utility:latest .
+
+      - name: 4. Start Services From Pre-Built Images
+        # Use --no-build to prevent the faulty command from running.
+        run: docker compose --env-file .env.test -f docker-compose.test.yml up -d --no-build --wait
+
+      - name: 5. Configure CDC Connector
+        run: docker compose --env-file .env.test -f docker-compose.setup.yml run --rm setup-connector
+
+      - name: 6. Execute Test Suites
+        run: |
+          DOCKER_COMPOSE_EXEC="docker compose --env-file .env.test -f docker-compose.test.yml exec chorus-tester"
+
+          echo "[*] Running Unit Tests..."
+          $DOCKER_COMPOSE_EXEC pytest --quiet tests/unit
+
+          echo "[*] Running Integration Tests..."
+          $DOCKER_COMPOSE_EXEC pytest --quiet tests/integration
+
+          echo "[*] Running End-to-End Tests..."
+          $DOCKER_COMPOSE_EXEC pytest --quiet tests/e2e

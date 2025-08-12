@@ -1,5 +1,5 @@
 # Filename: docker-compose.test.yml
-# 🔱 CHORUS VERIFICATION ENVIRONMENT (v17 - Authoritative Secrets)
+# 🔱 CHORUS VERIFICATION ENVIRONMENT (v18 - Resilient Orchestration)
 
 networks:
   chorus-net:
@@ -18,7 +18,6 @@ x-chorus-app: &chorus-app
     - 8.8.8.8
 
 services:
-  # ... (postgres, redis, redpanda, kafka-connect, setup-connector services remain unchanged) ...
   postgres:
     image: pgvector/pgvector:pg16
     container_name: ${COMPOSE_PROJECT_NAME}-postgres
@@ -88,29 +87,7 @@ services:
       CONFIG_STORAGE_TOPIC: chorus-connect-configs
       OFFSET_STORAGE_TOPIC: chorus-connect-offsets
       STATUS_STORAGE_TOPIC: chorus-connect-status
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8083/connectors"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
-  setup-connector:
-    build:
-      context: .
-      dockerfile: infrastructure/debezium/Dockerfile.setup
-    image: chorus-setup-utility:latest
-    networks:
-      - chorus-net
-    environment:
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - ./infrastructure/debezium/setup-connector.sh:/tmp/setup-connector.sh
-      - ./infrastructure/debezium/register-postgres-connector.json.template:/tmp/register-postgres-connector.json.template
-    entrypoint: /bin/sh
-    command: /tmp/setup-connector.sh
+    # HEALTHCHECK REMOVED - This is the key change.
 
   chorus-web:
     <<: *chorus-app
@@ -155,9 +132,6 @@ services:
     <<: *chorus-app
     container_name: ${COMPOSE_PROJECT_NAME}-chorus-tester
     command: ["sleep", "infinity"]
-    # THE DEFINITIVE FIX (PART 1): Explicitly inject the API key.
-    # This reads the GOOGLE_API_KEY from the CI runner's shell and sets it
-    # inside the container, bypassing any env_file flakiness.
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     depends_on:
@@ -166,3 +140,4 @@ services:
       - chorus-synthesis-daemon
       - chorus-sentinel
       - chorus-stream-processor
+      - kafka-connect

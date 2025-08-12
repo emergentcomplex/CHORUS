@@ -1,9 +1,10 @@
 #!/bin/bash
 #
-# 🔱 CHORUS Re-Genesis Context Generator (v13 - Explicit & Final)
+# 🔱 CHORUS Re-Genesis Context Generator (v16 - Final, Corrected, and Focused)
 #
-# Gathers all necessary context, including our codified failures, to ensure
-# the next development session starts from a state of maximum knowledge.
+# Gathers all necessary context from the new, reorganized documentation
+# structure to ensure the next development session starts from a state of
+# maximum knowledge. This version correctly excludes archived documents.
 
 set -e
 
@@ -14,7 +15,7 @@ cd "$(dirname "$0")/.."
 PRAXIS_FILE=$1
 if [ -z "$PRAXIS_FILE" ] || [ ! -f "$PRAXIS_FILE" ]; then
     echo "[!] ERROR: You must provide a valid path to a mission brief."
-    echo "    Usage: $0 docs/ideas/00_mandate_of_final_separation.md"
+    echo "    Usage: $0 docs/missions/00_mandate_of_the_oracle.md"
     exit 1
 fi
 
@@ -51,37 +52,27 @@ PREAMBLE
 
 echo -e "\n\n---\n" >> "$OUTPUT_FILE"
 
-# --- 2. The Gnosis, Logos, Covenant, Graveyard, Praxis, Ethos ---
-echo "### **PART 1: THE GNOSIS (The Distilled Wisdom)**" >> "$OUTPUT_FILE"
-cat docs/00_GNOSIS.md >> "$OUTPUT_FILE"
+echo "### **PART 1: THE LOGOS (The Constitution)**" >> "$OUTPUT_FILE"
+cat docs/00_THE_CONSTITUTION.md >> "$OUTPUT_FILE"
 echo -e "\n\n---\n" >> "$OUTPUT_FILE"
 
-echo "### **PART 2: THE LOGOS (The Constitution)**" >> "$OUTPUT_FILE"
-cat docs/01_CONSTITUTION.md >> "$OUTPUT_FILE"
+echo "### **PART 2: THE VERIFICATION COVENANT**" >> "$OUTPUT_FILE"
+cat docs/04_THE_VERIFICATION_COVENANT.md >> "$OUTPUT_FILE"
 echo -e "\n\n---\n" >> "$OUTPUT_FILE"
 
-echo "### **PART 3: THE VERIFICATION COVENANT**" >> "$OUTPUT_FILE"
-cat docs/04_VERIFICATION_COVENANT.md >> "$OUTPUT_FILE"
-echo -e "\n\n---\n" >> "$OUTPUT_FILE"
-
-echo "### **PART 4: THE GRAVEYARD (The Lessons)**" >> "$OUTPUT_FILE"
-cat docs/05_FAILED_HYPOTHESES.md >> "$OUTPUT_FILE"
-echo -e "\n\n---\n" >> "$OUTPUT_FILE"
-
-echo "### **PART 5: THE PRAXIS (The Master Plan)**" >> "$OUTPUT_FILE"
+echo "### **PART 3: THE PRAXIS (The Master Plan)**" >> "$OUTPUT_FILE"
 cat "$PRAXIS_FILE" >> "$OUTPUT_FILE"
 echo -e "\n\n---\n" >> "$OUTPUT_FILE"
 
-echo "### **PART 6: THE ETHOS (The Mission & Rules)**" >> "$OUTPUT_FILE"
-cat docs/00_MISSION_CHARTER.md >> "$OUTPUT_FILE"
+echo "### **PART 4: THE ETHOS (The Mission & Rules)**" >> "$OUTPUT_FILE"
+cat docs/01_THE_MISSION.md >> "$OUTPUT_FILE"
 echo -e "\n\n" >> "$OUTPUT_FILE"
-cat docs/02_CONTRIBUTING.md >> "$OUTPUT_FILE"
+cat docs/05_THE_CONTRIBUTING_GUIDE.md >> "$OUTPUT_FILE"
 echo -e "\n\n" >> "$OUTPUT_FILE"
-cat docs/03_SYSTEM_SLOS.md >> "$OUTPUT_FILE"
+cat docs/03_THE_SYSTEM_SLOS.md >> "$OUTPUT_FILE"
 echo -e "\n\n---\n" >> "$OUTPUT_FILE"
 
-# --- 7. The Land (The Codebase) ---
-echo "### **PART 7: THE LAND (The Codebase)**" >> "$OUTPUT_FILE"
+echo "### **PART 5: THE LAND (The Codebase)**" >> "$OUTPUT_FILE"
 
 TMP_CONTEXT_FILE=$(./tools/generate_verified_context.sh)
 trap 'rm -f "$TMP_CONTEXT_FILE"' EXIT

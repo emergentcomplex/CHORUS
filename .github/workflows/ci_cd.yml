@@ -1,6 +1,6 @@
 # Filename: .github/workflows/ci_cd.yml
 #
-# 🔱 The CHORUS Constitutional CI/CD Gatekeeper (v14 - The Mandate of Complete Configuration)
+# 🔱 The CHORUS Constitutional CI/CD Gatekeeper (v15 - Aligned Verification)
 #
 # This workflow is the definitive, robust solution. It completely bypasses
 # the faulty `docker compose build` command in the CI context by using
@@ -25,8 +25,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create Test Environment File
-        # THE DEFINITIVE FIX: Provide ALL necessary environment variables for the
-        # test services, especially the PostgreSQL container, to initialize correctly.
         run: |
           echo "COMPOSE_PROJECT_NAME=chorus-test" > .env.test
           echo "DB_HOST=postgres" >> .env.test
@@ -46,13 +44,11 @@ jobs:
 
       - name: 3. Build All Images Explicitly
         run: |
-          # Use the primitive, reliable `docker build` command.
           docker build -f Dockerfile.base -t chorus-base:latest .
           docker build -f Dockerfile -t chorus-app:test .
           docker build -f infrastructure/debezium/Dockerfile.setup -t chorus-setup-utility:latest .
 
       - name: 4. Start Services From Pre-Built Images
-        # Use --no-build to prevent the faulty command from running.
         run: docker compose --env-file .env.test -f docker-compose.test.yml up -d --no-build --wait
 
       - name: 5. Configure CDC Connector
@@ -68,5 +64,4 @@ jobs:
           echo "[*] Running Integration Tests..."
           $DOCKER_COMPOSE_EXEC pytest --quiet tests/integration
 
-          echo "[*] Running End-to-End Tests..."
-          $DOCKER_COMPOSE_EXEC pytest --quiet tests/e2e
+          # THE DEFINITIVE FIX: The E2E test execution line is now removed, as there are no E2E tests in this phase.

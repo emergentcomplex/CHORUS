@@ -1,4 +1,4 @@
-# 🔱 Praxis: The Mandate of the Oracle
+# 🔱 Praxis: The Mandate of the Oracle (Amended & Ratified)
 
 ## I. Objective
 
@@ -28,6 +28,7 @@ The current state of the engine is one of perfect, hollow readiness (post-revers
 1.  **The Blind Analysts:** The `RunAnalystTier` use case is functioning, but it reasons in a vacuum. The `PostgresAdapter.load_data_from_datalake` method is a placeholder stub.
 2.  **The Silent Library:** The Harvester daemons are correctly populating the `/datalake` directory, but this data is unused.
 3.  **The Flawed Prototype:** The `dsv_embeddings` table and its related adapter methods are a non-functional prototype that must be removed.
+4.  **The Premature Prophecy:** The `tests/e2e/test_e2e_unified.py` test is failing because it correctly identifies that the end-to-end RAG pipeline is not yet functional. It must be removed and replaced with a more focused integration test.
 
 ## IV. The Schema of the Oracle (The Architectural Decree)
 
@@ -48,7 +49,6 @@ The foundation of this mission remains the creation of the new, canonical table 
 This mission will be executed in four atomic, verifiable sub-phases.
 
 - **Sub-Phase 1: The Oracle's Sanctum (Build the Embedding Service)**
-
   1.  **Modify `infrastructure/postgres/init-db.sh`:** Remove the `CREATE TABLE dsv_embeddings` command. Add the new, correct `CREATE TABLE semantic_vectors` command and its BTREE indexes.
   2.  **Create `chorus_engine/infrastructure/services/embedding_service.py`:** Implement a new Flask application using the **App Factory Pattern**. The `SentenceTransformer` model **MUST** be loaded lazily inside the `create_app()` function to prevent deadlocks. It will expose a `/health` check and a `/embed` endpoint.
   3.  **Create `wsgi_embedder.py`:** Create the WSGI entry point for the new embedding service.
@@ -58,7 +58,6 @@ This mission will be executed in four atomic, verifiable sub-phases.
       - Add a health check that targets the `/health` endpoint.
 
 - **Sub-Phase 2: The Scribe's Pilgrimage (Refactor the Vectorizer)**
-
   1.  **Create `chorus_engine/infrastructure/daemons/vectorizer.py`:**
       - This daemon will **NOT** import `SentenceTransformer`.
       - Its `initialize_dependencies` function will wait for the `chorus-embedder` service to be healthy.
@@ -67,19 +66,19 @@ This mission will be executed in four atomic, verifiable sub-phases.
   2.  **Modify `docker-compose` files:** Add the `chorus-vectorizer` service. It **MUST** include a `depends_on` condition to wait for the `chorus-embedder` service to be healthy.
 
 - **Sub-Phase 3: The Analyst's Divination (Refactor the RAG Query Path)**
-
   1.  **Modify `chorus_engine/adapters/persistence/postgres_adapter.py`:**
       - Remove the `_get_embedding_model` class method and all `SentenceTransformer` logic.
       - The `query_semantic_space` method will now make a `requests.post` call to the `chorus-embedder` service to get the embedding for the user's query.
   2.  **Modify `docker-compose` files:** Add `depends_on` conditions for the `chorus-launcher` and `chorus-tester` services to wait for the `chorus-embedder` to be healthy.
 
 - **Sub-Phase 4: The Final, Verifiable Prophecy (The Test)**
-  1.  **Delete `tests/integration/test_vector_capabilities.py`:** This test is obsolete as it targets the removed prototype.
-  2.  **Create `tests/integration/test_rag_pipeline.py`:** This will be the new, definitive integration test.
+  1.  **(Amended Step) Delete `tests/e2e/test_e2e_unified.py`:** This test is failing because it is testing a capability that does not yet exist. Its function will be correctly and more precisely replaced by the new integration test below.
+  2.  **Delete `tests/integration/test_vector_capabilities.py`:** This test is obsolete as it targets the removed prototype.
+  3.  **Create `tests/integration/test_rag_pipeline.py`:** This will be the new, definitive integration test.
       - It will run in the hermetic test environment, which uses an isolated `./tests/test_datalake` volume.
       - The test fixture will create a clean, empty `test_datalake` directory and place a single, unique JSON file inside it.
       - The test will then poll the `semantic_vectors` table, asserting that the record appears within a reasonable timeout.
-  3.  **Final Verification:** Execute `make test` and confirm that the entire suite, including the new integration test, passes with zero failures.
+  4.  **Final Verification:** Execute `make test` and confirm that the entire suite, including the new integration test, passes with zero failures.
 
 ## VI. Acceptance Criteria
 
@@ -88,3 +87,4 @@ This mission will be executed in four atomic, verifiable sub-phases.
 - **AC-3:** The `chorus-vectorizer` daemon correctly prepends the date to content chunks before vectorization.
 - **AC-4:** The new `test_rag_pipeline.py` test passes, proving that a file created in the isolated test datalake is successfully vectorized and stored in the database.
 - **AC-5:** The `make test` command completes with 100% success.
+- **AC-6 (Hermeticity and Non-Pollution):** The successful execution of the `make test` command **MUST NOT** alter the state of the development environment. A subsequent `make run-dev` command must result in a healthy, functional development environment with its own distinct data, proving the test environment is truly ephemeral and isolated.

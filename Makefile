@@ -1,5 +1,5 @@
 # Filename: Makefile
-# 🔱 CHORUS Command Center (v42 - Definitive & Fully Guarded)
+# 🔱 CHORUS Command Center (v43 - Deterministic Test Orchestration)
 SHELL := /bin/bash
 
 # --- Environment-Specific Compose Commands ---
@@ -95,8 +95,9 @@ test: validate stop-all build-base
 	@echo "[*] VERIFICATION: Starting full test suite run..."
 	@echo "[INFO] This will create and destroy a temporary, isolated test environment."
 	@trap '$(DOCKER_COMPOSE_TEST) down --volumes --remove-orphans > /dev/null 2>&1' EXIT
-	@$(DOCKER_COMPOSE_TEST) up -d --build --wait
-	@echo "[*] Configuring the Debezium connector for the test environment..."
+	@echo "[*] Starting all test services in the background..."
+	@$(DOCKER_COMPOSE_TEST) up -d --build
+	@echo "[*] Waiting for services to be application-ready by running the resilient setup script..."
 	@$(DOCKER_COMPOSE_SETUP_TEST) run --rm setup-connector
 	@echo "[*] Executing the full test suite in order (Unit -> Integration -> E2E)..."
 	@$(DOCKER_COMPOSE_TEST) exec chorus-tester pytest --quiet tests/unit

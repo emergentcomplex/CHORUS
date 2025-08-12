@@ -8,36 +8,17 @@
 
 **CHORUS** is not a search engine; it is a judgment engine. It is a fully autonomous, self-healing, and evolving intelligence platform designed to fuse disparate, open-source data verticals into high-fidelity, actionable insights.
 
-## System Architecture: The Dataflow Engine
+It is not a monolith; it is a symphony of judgment. An adversarial council of AI virtuosos—Hawks, Doves, Futurists, and Skeptics—each performing their own analysis, their competing melodies forged by synthesizing Directors into a single, coherent revelation.
 
-CHORUS is a data-intensive application built on the principles of the "Unbundled Database." It uses a collection of specialized, containerized services that communicate via an immutable event log (Redpanda, a Kafka-compatible stream). This architecture ensures scalability, resilience, and evolvability.
+We do not ask for an answer. We demand a verdict, complete with every source and every dissenting note, allowing you to see the work and trust the judgment.
 
-```mermaid
-graph TD
-    subgraph "User Interaction & Write Path"
-        A[Web UI] -- Writes (e.g., New Task) --> D{PostgreSQL (System of Record)};
-    end
+---
 
-    subgraph "The System's Nervous System (The Unified Log)"
-        style L fill:#27272a,stroke:#a1a1aa,color:#fff
-        D -- Change Data Capture --> E[Debezium];
-        E -- Immutable Events --> L[Redpanda/Kafka Topic: task_queue];
-    end
+## System Architecture
 
-    subgraph "Asynchronous Processing & Derived Data"
-        style P fill:#1e3a8a,stroke:#60a5fa,color:#fff
-        style S fill:#431407,stroke:#e11d48,color:#fff
-        L -- Consumes Events --> P[Stream Processor (chorus-stream-processor)];
-        P -- Materializes State --> S[Redis Cache (Fast Read Store)];
-    end
+The CHORUS engine is a data-intensive application built on the principles of the "Unbundled Database" and the **C4 Model** for architectural visualization.
 
-    subgraph "Read & Analysis Path"
-        S -- Fast Dashboard Queries --> A;
-        D -- Deep Analysis & RAG --> G[Analysis Daemons (chorus-launcher)];
-    end
-
-    style D fill:#047857,stroke:#34d399,color:#fff
-```
+> **For a detailed, multi-layered breakdown of the system's architecture, please see the canonical [🔱 Architectural Vision](./00_ARCHITECTURAL_VISION.md) document.**
 
 ---
 
@@ -69,11 +50,10 @@ cp .env.example .env
 
 This single command builds the Docker images (a one-time slow operation) and starts all services in development mode.
 
-```bash
+````bash
 
 # This command will stop, build, and start the entire stack.
-make rebuild
-```
+make rebuild```
 
 Subsequent starts can use the faster `make run` command.
 
@@ -87,4 +67,4 @@ Subsequent starts can use the faster `make run` command.
 ```bash
 # Stop and remove all running containers and volumes.
 make stop
-```
+````

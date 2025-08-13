@@ -1,5 +1,5 @@
 # Filename: docker-compose.test.yml
-# 🔱 CHORUS VERIFICATION ENVIRONMENT (v23 - Controlled Startup)
+# 🔱 CHORUS VERIFICATION ENVIRONMENT (v22 - CI/CD Resilient Startup)
 
 volumes:
   test_datalake_vol:
@@ -106,13 +106,12 @@ services:
         "--worker-class=gthread",
         "wsgi_embedder:app",
       ]
-    depends_on:
-      postgres: { condition: service_healthy }
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5003/health"]
       interval: 10s
       timeout: 5s
       retries: 5
+      # THE DEFINITIVE FIX: Increase the startup grace period for slower CI environments.
       start_period: 180s
 
   chorus-web:

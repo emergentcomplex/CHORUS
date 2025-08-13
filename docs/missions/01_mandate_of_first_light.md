@@ -1,58 +1,55 @@
-# 🔱 Praxis: The Mandate of First Light
+# 🔱 Praxis: The Mandate of First Light (v2, Amended)
 
 ## I. Objective
 
-To fully implement the `_run_single_analyst_pipeline` method within the `RunAnalystTier` use case. This mission will transform the Analyst from a passive data retriever into an active reasoning agent that consumes Retrieval-Augmented Generation (RAG) context, synthesizes it according to its persona, and saves a structured, verifiable report to the `analyst_reports` table.
+To fully implement the `_run_single_analyst_pipeline` method within the `RunAnalystTier` use case. This mission will transform the Analyst into an active reasoning agent that consumes RAG context, synthesizes it according to its persona, and saves a structured report. Critically, this mission will also establish the **Chain of Justification** by persisting the methods and sources used by the Analyst, making all reasoning auditable from the very first step.
 
 ## II. Justification
 
-This is the most critical next step in the Master Plan. It builds directly upon the stable foundation of the "Mandate of the Oracle" and delivers the first tangible, end-to-end analytical output of the CHORUS engine. All higher-level missions—including Director-level synthesis, dialectic debate, and final judgment—are blocked until this fundamental capability is proven. This mission makes the engine _work_.
+This is the most critical next step in the Master Plan. It delivers the first tangible analytical output of the CHORUS engine. By integrating the "Chain of Justification" at this foundational stage, we ensure that our core principle of auditable, evidence-based reasoning is baked into the system's DNA, not added as an afterthought. This mission makes the engine _work_, and it makes it _trustworthy_.
 
-## III. The Ground Truth (The Current State)
+## III. Guiding Precepts & Inviolable Constraints
 
-1.  **Stable RAG Ingestion:** The "Mandate of the Oracle" was a success. The `chorus-vectorizer` daemon is correctly populating the `semantic_vectors` table with time-encoded vector embeddings.
-2.  **Hollow Use Case:** The `RunAnalystTier` use case is a functional shell. It correctly fetches a task and manages state transitions, but its core `_run_single_analyst_pipeline` method is a placeholder that performs no actual reasoning or persistence of its analytical product.
-3.  **Empty Archive:** The `analyst_reports` table exists in the schema but is never written to.
+**A. The Mandate of Tiered Cognition:** This mission will be the first to implement the three-tiered LLM architecture. The `RunAnalystTier` use case **MUST** be engineered to use a formal `LLMClient` capable of directing tasks to the appropriate model tier (e.g., using the `synthesis`-tier model for its primary report generation).
 
-## IV. The Plan
+## IV. The Ground Truth (The Current State)
 
-This mission will be executed in four atomic, verifiable sub-phases.
+1.  **Stable RAG Ingestion:** The `chorus-vectorizer` daemon is correctly populating the `semantic_vectors` table.
+2.  **Hollow Use Case:** The `RunAnalystTier` use case is a functional shell.
+3.  **Incomplete Schema:** The `analyst_reports` table lacks a column to store the Chain of Justification.
+
+## V. The Plan
 
 - **Sub-Phase 1: The Analyst's Prompt**
 
-  1.  Design the canonical prompt template for the Analyst persona. This prompt will be a multi-part instruction that commands the LLM to:
-      a. Adopt a specific persona (e.g., "The Operator," "The Futurist").
-      b. Review a provided body of RAG context.
-      c. Synthesize the context through the lens of its persona.
-      d. Generate a structured report in a specified format (e.g., Markdown with clear headings for Title, Summary, and Findings).
+  1.  Design the canonical prompt template for the Analyst persona. This prompt will instruct the LLM to generate a structured report **and** to output a machine-readable summary of the methods it used to arrive at its conclusions.
 
 - **Sub-Phase 2: The Analyst's Mind (Implementation)**
 
-  1.  Fully implement the `_run_single_analyst_pipeline` method in `chorus_engine/app/use_cases/run_analyst_tier.py`.
-  2.  This method will retrieve the RAG context by calling `self.vector_db.query_similar_documents`.
-  3.  It will format the persona's instructions and the retrieved context into the master prompt.
-  4.  It will make a call to the `synthesis`-tier LLM (`self.llm.instruct(...)`).
-  5.  It will perform basic parsing on the LLM's response to extract the report text.
+  1.  Fully implement the `_run_single_analyst_pipeline` method in `run_analyst_tier.py`.
+  2.  It will retrieve RAG context via `self.vector_db.query_similar_documents`.
+  3.  It will make a call to the `synthesis`-tier LLM.
+  4.  It will parse the LLM's response to extract both the report text and the structured **"methods" data (the Chain of Justification)**.
 
 - **Sub-Phase 3: The Analyst's Hand (Persistence)**
 
-  1.  Add a new abstract method, `save_analyst_report`, to the `DatabaseInterface` in `chorus_engine/app/interfaces.py`.
-  2.  Implement the `save_analyst_report` method in the `PostgresAdapter` (`chorus_engine/adapters/persistence/postgres_adapter.py`). This method will take a `query_hash`, `persona_id`, and `report_text` and execute an `INSERT` into the `analyst_reports` table.
-  3.  The `_run_single_analyst_pipeline` method will call this new adapter method to persist its result.
+  1.  **Amend Schema:** Modify `infrastructure/postgres/init.sql` to add a `methods_used JSONB` column to the `analyst_reports` table.
+  2.  **Amend Interface:** Add the `methods_data: dict` parameter to the `save_analyst_report` method in the `DatabaseInterface`.
+  3.  **Amend Adapter:** Implement the updated `save_analyst_report` method in the `PostgresAdapter` to persist both the report text and the JSONB methods data.
+  4.  The `_run_single_analyst_pipeline` method will call this new adapter method.
 
 - **Sub-Phase 4: The Verifiable Report (The Test)**
-  1.  Create a new, focused integration test file: `tests/integration/test_analyst_produces_report.py`.
-  2.  This test will be added to a new, isolated test harness (`make test-analyst`) for rapid iteration.
-  3.  The test will:
-      a. Seed the `semantic_vectors` table with a known document.
-      b. Queue a new task in the `task_queue`.
-      c. Execute the `RunAnalystTier` use case, providing a mocked LLM that returns a predictable, structured report string.
-      d. Poll the `analyst_reports` table and assert that a new record appears with the correct `query_hash`, `persona_id`, and the report text from the mock LLM.
+  1.  Create a new, focused integration test: `tests/integration/test_analyst_produces_report.py`.
+  2.  The test will:
+      a. Seed the `semantic_vectors` table.
+      b. Queue a task.
+      c. Execute the `RunAnalystTier` use case with a mocked LLM that returns a predictable report and methods block.
+      d. Poll the `analyst_reports` table and assert that the new record contains the correct report text **and** that the `methods_used` column is correctly populated.
 
-## V. Acceptance Criteria
+## VI. Acceptance Criteria
 
-- **AC-1:** The `DatabaseInterface` is updated with the `save_analyst_report` method.
-- **AC-2:** The `PostgresAdapter` correctly implements the `save_analyst_report` method.
-- **AC-3:** The `RunAnalystTier` use case successfully calls the LLM and persists the resulting report to the database via the adapter.
-- **AC-4:** The new `test_analyst_produces_report.py` integration test passes, proving the end-to-end flow.
-- **AC-5:** The full `make test` suite passes, ensuring no regressions have been introduced.
+- **AC-1:** The `analyst_reports` table is amended with a `methods_used JSONB` column.
+- **AC-2:** The `DatabaseInterface` and `PostgresAdapter` are updated to handle the persistence of the methods data.
+- **AC-3:** The `RunAnalystTier` use case is implemented using the tiered `LLMClient` and correctly saves both the report and its Chain of Justification.
+- **AC-4:** The new `test_analyst_produces_report.py` integration test passes.
+- **AC-5:** The full `make test` suite passes.

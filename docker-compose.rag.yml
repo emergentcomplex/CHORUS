@@ -1,5 +1,5 @@
 # Filename: docker-compose.rag.yml
-# 🔱 CHORUS Isolated RAG Pipeline Test Environment (v2 - Threaded Oracle)
+# 🔱 CHORUS Isolated RAG Pipeline Test Environment (v3 - CI/CD Resilient Startup)
 
 volumes:
   test_datalake_vol:
@@ -61,7 +61,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 60s
+      # THE DEFINITIVE FIX: Increase the startup grace period for slower CI environments.
+      start_period: 180s
 
   chorus-vectorizer:
     <<: *chorus-app

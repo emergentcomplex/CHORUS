@@ -1,8 +1,6 @@
 # Filename: docker-compose.test.yml
-# 🔱 CHORUS VERIFICATION ENVIRONMENT (v20 - Named Volume Mandate)
+# 🔱 CHORUS VERIFICATION ENVIRONMENT (v22 - CI/CD Resilient Startup)
 
-# THE DEFINITIVE FIX: Define a named volume for the test datalake.
-# This keeps all file I/O within Docker's control, avoiding host permission issues.
 volumes:
   test_datalake_vol:
     name: ${COMPOSE_PROJECT_NAME}_test_datalake_vol
@@ -18,7 +16,6 @@ x-chorus-app: &chorus-app
   env_file: .env.test
   volumes:
     - .:/app
-    # Both the tester and vectorizer will share this named volume.
     - test_datalake_vol:/app/datalake
     - ./logs:/app/logs
   dns:
@@ -101,13 +98,21 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME}-chorus-embedder
     hostname: chorus-embedder
     command:
-      ["gunicorn", "--bind", "0.0.0.0:5003", "--workers=1", "wsgi_embedder:app"]
+      [
+        "gunicorn",
+        "--bind",
+        "0.0.0.0:5003",
+        "--workers=1",
+        "--worker-class=gthread",
+        "wsgi_embedder:app",
+      ]
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5003/health"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 60s
+      # THE DEFINITIVE FIX: Increase the startup grace period for slower CI environments.
+      start_period: 180s
 
   chorus-web:
     <<: *chorus-app

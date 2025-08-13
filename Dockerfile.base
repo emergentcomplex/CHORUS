@@ -1,5 +1,5 @@
 # Filename: Dockerfile.base
-# 🔱 CHORUS Stable Base Image (v4 - The Final, Correct Installation)
+# 🔱 CHORUS Stable Base Image (v5 - Model Baked In)
 # This Dockerfile builds all heavy, slow-to-change dependencies.
 
 FROM python:3.12-slim
@@ -12,10 +12,14 @@ WORKDIR /app
 # 2. Install system dependencies.
 RUN apt-get update && apt-get install -y build-essential postgresql-client curl git
 
-# 3. Copy the dependency manifest.
+# 3. Copy only the requirements and the downloader script.
 COPY requirements.txt .
+COPY tools/setup/download_embedding_model.py /app/tools/setup/
 
-# 4. THE DEFINITIVE FIX: Install torch with its special URL first,
-#    then install the rest of the requirements.
+# 4. Install Python dependencies first.
 RUN pip install --no-cache-dir torch==2.7.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir -r requirements.txt
+
+# 5. THE DEFINITIVE FIX: Run the script to download the model into a dedicated layer.
+# This moves the network and memory-intensive operation into the build phase.
+RUN python /app/tools/setup/download_embedding_model.py

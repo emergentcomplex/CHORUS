@@ -1,11 +1,6 @@
 # Filename: .github/workflows/ci_cd.yml
 #
-# 🔱 The CHORUS Constitutional CI/CD Gatekeeper (v15 - Aligned Verification)
-#
-# This workflow is the definitive, robust solution. It completely bypasses
-# the faulty `docker compose build` command in the CI context by using
-# primitive `docker build` commands and then running the services from
-# the pre-built images. It now includes the complete environment configuration.
+# 🔱 The CHORUS Constitutional CI/CD Gatekeeper (v19 - Canonical Build/Run Separation)
 
 name: CHORUS CI/CD Gatekeeper
 
@@ -42,26 +37,29 @@ jobs:
       - name: 2. Clean Docker Environment
         run: make stop-all
 
-      - name: 3. Build All Images Explicitly
+      # THE DEFINITIVE FIX: Implement a two-phase build/run process.
+      - name: 3. Build All Service Images
         run: |
-          docker build -f Dockerfile.base -t chorus-base:latest .
+          # Build the base image first, as the app image depends on it.
+          make build-base
+          # Explicitly build the application image and tag it.
           docker build -f Dockerfile -t chorus-app:test .
-          docker build -f infrastructure/debezium/Dockerfile.setup -t chorus-setup-utility:latest .
 
       - name: 4. Start Services From Pre-Built Images
-        run: docker compose --env-file .env.test -f docker-compose.test.yml up -d --no-build --wait
+        run: |
+          # Use --no-build to force Compose to use the images we just built.
+          docker compose --env-file .env.test -f docker-compose.test.yml up -d --no-build --wait \
+          || (echo "::error::Service startup failed. Dumping logs..." && docker compose --env-file .env.test -f docker-compose.test.yml logs && exit 1)
 
       - name: 5. Configure CDC Connector
         run: docker compose --env-file .env.test -f docker-compose.setup.yml run --rm setup-connector
 
       - name: 6. Execute Test Suites
         run: |
-          DOCKER_COMPOSE_EXEC="docker compose --env-file .env.test -f docker-compose.test.yml exec chorus-tester"
+          DOCKER_EXEC="docker compose --env-file .env.test -f docker-compose.test.yml exec chorus-tester"
 
           echo "[*] Running Unit Tests..."
-          $DOCKER_COMPOSE_EXEC pytest --quiet tests/unit
+          $DOCKER_EXEC pytest tests/unit
 
           echo "[*] Running Integration Tests..."
-          $DOCKER_COMPOSE_EXEC pytest --quiet tests/integration
-
-          # THE DEFINITIVE FIX: The E2E test execution line is now removed, as there are no E2E tests in this phase.
+          $DOCKER_EXEC pytest tests/integration

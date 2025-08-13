@@ -18,14 +18,16 @@ def create_app():
     """
     app = Flask(__name__)
     
-    # Lazy loading of the model. This will be loaded once per worker process.
-    # Since we mandate --workers=1, this will be a singleton.
+    # THE DEFINITIVE FIX: Load the model by referencing the cache folder, not a hardcoded subpath.
+    model_name = 'all-MiniLM-L6-v2'
+    model_path = '/app/models'
+    
     try:
-        # Using an explicit cache folder within the container
-        model_cache_path = '/app/models'
-        os.makedirs(model_cache_path, exist_ok=True)
-        app.model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=model_cache_path)
-        logger.info("✅ SentenceTransformer model loaded successfully.")
+        if not os.path.exists(model_path):
+            raise RuntimeError(f"Model cache directory not found at baked-in path: {model_path}")
+        # The library will find the correct model subdirectories within the cache.
+        app.model = SentenceTransformer(model_name, cache_folder=model_path)
+        logger.info(f"✅ SentenceTransformer model loaded successfully from cache: {model_path}.")
     except Exception as e:
         logger.error(f"❌ Failed to load SentenceTransformer model: {e}", exc_info=True)
         app.model = None
@@ -54,7 +56,6 @@ def create_app():
         try:
             texts = data['texts']
             embeddings = app.model.encode(texts)
-            # Convert numpy array to a list of lists for JSON serialization
             embeddings_list = embeddings.tolist() if isinstance(embeddings, np.ndarray) else embeddings
             return jsonify({"embeddings": embeddings_list}), 200
         except Exception as e:

@@ -1,3 +1,5 @@
+### Filename: `README.md`
+
 <p align="center">
   <a href="#">
     <img src="https://img.shields.io/badge/CHORUS-Judgment%20Engine-teal?style=for-the-badge" alt="Project Title">
@@ -25,7 +27,8 @@ To comprehend CHORUS is to view it through four distinct lenses, each revealing 
 <br>
 
 #### 🧠 **View I: The Judgment Process**
-*This is the **why** of the system: the logical flow of how an AI council debates and synthesizes a query into a final verdict.*
+
+_This is the **why** of the system: the logical flow of how an AI council debates and synthesizes a query into a final verdict._
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#14b8a6', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
@@ -37,19 +40,19 @@ graph TD
     subgraph "Tier 1: The Analyst Wing (Parallel Analysis)"
         direction LR
         style AnalystTier fill:#1e293b,stroke:#334155
-        
+
         subgraph AnalystTier[ ]
             P1["<i class='fa fa-user-secret'></i> Analyst Hawk"]
             P2["<i class='fa fa-user-secret'></i> Analyst Dove"]
             P3["<i class='fa fa-user-secret'></i> Analyst Skeptic"]
             P4["<i class='fa fa-user-secret'></i> Analyst Futurist"]
         end
-        
+
         R1[Preliminary Report 1]
         R2[Preliminary Report 2]
         R3[Preliminary Report 3]
         R4[Preliminary Report 4]
-        
+
         P1 --> R1
         P2 --> R2
         P3 --> R3
@@ -73,9 +76,11 @@ graph TD
     classDef persona fill:#083344,stroke:#0e7490,color:#e0f2fe
     class P1,P2,P3,P4 persona;
 ```
+````
 
 #### ⚙️ **View II: The Dataflow Engine**
-*This is the **how** of the system: the physical infrastructure and data's journey through our containerized, event-driven services.*
+
+_This is the **how** of the system: the physical infrastructure and data's journey through our containerized, event-driven services._
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#3b82f6', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
@@ -106,7 +111,8 @@ graph TD
 ```
 
 #### 🛠️ **View III: The Development Praxis**
-*This is **how we trust** the system: the `Makefile`-driven workflow that separates rapid iteration from hermetic verification.*
+
+_This is **how we trust** the system: the `Makefile`-driven workflow that separates rapid iteration from hermetic verification._
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#d946ef', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
@@ -118,40 +124,45 @@ graph LR
     subgraph "Fast Loop (95% of workflow)"
         style FastLoop fill:#1e293b,stroke:#334155
         subgraph FastLoop [ ]
-            Dev -- "1 `make run`" --> C[Running Containers]
+            Dev -- "1 `make run-dev`" --> C[Running Containers]
             Editor -.-> C
             Dev -- "2 `make test-fast`" --> T1(Fast Tests)
             T1 -- "Asserts against" --> C
         end
     end
-    
-    subgraph "Slow Loop (On Dependency Change)"
-        style SlowLoop fill:#4a044e,stroke:#a21caf
-        subgraph SlowLoop [ ]
-            Dev -- "`make rebuild`" --> B(Build Image) --> C2[Restart Containers]
-        end
-    end
 
-    subgraph "Verification Loop (CI/CD)"
+    subgraph "Verification & Release"
         style VerificationLoop fill:#450a0a,stroke:#be123c
         subgraph VerificationLoop [ ]
-            CI(CI/CD Server) -- "`make test`" --> T2(Hermetic Test Suite)
+            Editor -- "git commit -m 'feat: ...'" --> PR(Pull Request)
+            PR -- "Triggers" --> CI(CI/CD Gatekeeper)
+            CI -- "Runs `make test`" --> T2(Hermetic Test Suite)
+            T2 -- "On Success" --> Merge(Merge to Main)
         end
     end
 ```
 
-#### 🌀 **View IV: The Recursive Heart**
-*This is the **future** of the system: the path to true recursion, where the engine learns from its own judgments.*
+#### 🌀 **View IV: The Team Topology**
+
+_This is **how we organize** for flow: as a single, stream-aligned team building and consuming our own internal platform._
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#ca8a04', 'primaryTextColor': '#ffffff', 'lineColor': '#a1a1aa'}}}%%
 graph TD
-    A[Analysis Pipeline] --> B{Final Verdict};
-    B --> C{User};
-    C -- "Provides Feedback" --> D["<i class='fa fa-thumbs-up'></i><i class='fa fa-thumbs-down'></i> Feedback Store"];
-    D --> E{Re-evaluation Trigger};
-    E -- "Refines Personas or Knowledge" --> F["<i class='fa fa-brain'></i> Persona Cognitive State"];
-    F -. "Influences Next Judgment" .-> A;
+    subgraph "CHORUS Organization"
+        Team[
+            <b>Stream-Aligned Team: CHORUS Core</b><br>
+            <i>End-to-end ownership of the<br>CHORUS Judgment Engine.</i>
+        ]
+
+        Platform[
+            <b>Internal Platform</b><br>
+            <i>The `Makefile`, Docker configs, and CI/CD pipeline<br>that enable self-service testing and deployment.</i>
+        ]
+
+        Team -- "Consumes (X-as-a-Service)" --> Platform
+        Team -- "Builds & Maintains" --> Platform
+    end
 ```
 
 ---
@@ -163,43 +174,47 @@ Ready to join the chorus? Here’s how to get the engine running.
 **Prerequisites:** Git, Docker & Docker Compose.
 
 **Step 1: Clone & Configure** 🧬
+
 ```bash
 # Clone the repository and enter the directory
 git clone <your-repo-url>
 cd CHORUS
 
-# Create your personal environment file from the template
-cp .env.example .env
+# Create your personal environment file for development
+cp .env.dev .env
 
 # Add your API keys to the new .env file
 nano .env
 ```
 
 **Step 2: Build & Launch** 🛰️
+
 ```bash
 # This single command builds the base image and starts all services.
 # The first run will be slow; subsequent runs will be fast.
-make rebuild
+make run-dev
 ```
 
 **Step 3: Observe** 🔭
--   **CHORUS C2 UI:** `http://localhost:5001`
--   **Redpanda Console:** `http://localhost:8080`
+
+- **CHORUS C2 UI:** `http://localhost:5002`
+- **Redpanda Console:** `http://localhost:8081`
 
 **Step 4: Power Down** 🔌
+
 ```bash
-# Stop and remove all running containers and volumes.
-make stop
+# Stop and remove all running containers and volumes for the dev environment.
+make stop-dev
 ```
 
 ---
 
 ### 📜 Our Guiding Philosophy
 
-Development on CHORUS is not arbitrary. It is a disciplined practice guided by a set of foundational documents that define our architecture, our data strategy, and our commitment to verification.
+Development on CHORUS is not arbitrary. It is a disciplined practice guided by a set of foundational documents that define our mission, our architecture, and our commitment to verification.
 
--   **The Constitution:** The supreme law governing the system's design and mission.
--   **The Verification Covenant:** The supreme law governing how we prove our work is correct.
+- **The Constitution:** The supreme law governing the system's design and mission.
+- **The Development Protocol:** The supreme law governing how we build, test, and release software.
 
 Before contributing, we ask that you read these documents in the `/docs` directory to understand the principles that make CHORUS possible.
 

@@ -1,83 +1,89 @@
 # 🔱 Contributing to CHORUS
 
-Thank you for your interest in contributing to the CHORUS project. To maintain the quality, consistency, and architectural integrity of the system, we adhere to a strict, axiom-driven development process.
+Thank you for your interest in contributing to the CHORUS project. We are building a system of judgment, and we apply that same spirit of rigor and clarity to our own development process.
 
-## The Guiding Principles
+This guide provides the "happy path" for making your first contribution. Our complete, detailed development lifecycle is codified in the [🔱 The Development Protocol](./07_THE_DEVELOPMENT_PROTOCOL.md), which we encourage you to read.
 
-Before making any changes, you must familiarize yourself with the canonical documents of this project. They define our mission, our architecture, and our commitment to verification. The supreme law is [🔱 The Constitution](./00_THE_CONSTITUTION.md).
+## Our Philosophy: The Three Ways
 
----
+Our process is built on a simple philosophy:
 
-## Quickstart Guide
+1.  **Create Fast Flow:** We work in small, isolated batches to get value delivered smoothly.
+2.  **Amplify Feedback:** We use automation and peer review to find and fix problems early.
+3.  **Learn Constantly:** We treat every task, and every failure, as a learning opportunity.
 
-This guide provides the definitive steps to set up and run the entire CHORUS system locally using `make` and Docker.
+## Your First Contribution: A Step-by-Step Guide
 
-### Prerequisites
+### Step 1: Set Up Your Environment
 
-- **Git:** For cloning the repository.
-- **Docker & Docker Compose:** For running the entire containerized environment.
+Ensure you have a working local environment. The canonical setup guide is in our main [README.md](../README.md).
 
-### 1. Initial Setup
+### Step 2: Begin Your Mission
+
+All work, from a major feature to a small typo fix, is a "Mission." We use a `make` command to ensure you always start from a clean, up-to-date, and isolated branch.
 
 ```bash
-# Clone the repository and navigate into it
-git clone <your-repo-url>
-cd CHORUS
-
-# Create your personal environment file from the template
-cp .env.example .env
-
-# Open .env with your editor and add your GOOGLE_API_KEY
-# nano .env
+# This command will create a new branch for you named `feature/fix-that-one-bug`
+make mission-begin MISSION_NAME=fix-that-one-bug
 ```
 
-### 2. Build and Run the System
+### Step 3: Make Your Changes & Commit Atomically
 
-This single command builds the Docker images (a one-time slow operation) and starts all services in development mode.
+Make your code or documentation changes. As you work, create **atomic commits**. An atomic commit is a small, self-contained change that represents a single logical unit of work.
 
-```bash
-# This command will stop, build, and start the entire stack.
-make rebuild
+Your commit messages are a critical form of communication. We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification.
+
+**Good Commit Message:**
+
+```
+feat(web): add pagination to the dashboard
+
+Implements server-side pagination for the main task list to improve
+performance on systems with thousands of tasks.
 ```
 
-Subsequent starts can use the faster `make run` command.
+**Bad Commit Message:**
 
-### 3. Access the System
-
-- **CHORUS C2 UI:** [http://localhost:5001](http://localhost:5001)
-- **Redpanda Console (Kafka UI):** [http://localhost:8080](http://localhost:8080)
-
----
-
-## The Development Praxis
-
-Our development process is designed to fulfill **Axiom 49: Deliberate Velocity**. The `Makefile` provides two distinct, purpose-built workflows.
-
-### I. The Fast Loop (Your 95% Workflow)
-
-This is the workflow for all day-to-day coding. It is designed for an instant feedback loop.
-
-```bash
-# 1. Start all services in the background.
-make run
-
-# 2. As you make code changes, run the fast test suite.
-make test-fast
+```
+made some changes
 ```
 
-### II. The Verification Workflow (For CI/CD)
+### Step 4: Verify Your Work
 
-This is the single, atomic command that a continuous integration server must use. It is slow, hermetic, and guarantees correctness from a clean slate.
+Before you ask others to review your work, you must verify it yourself. Our `Makefile` provides the single command to run the entire test suite in a clean, isolated environment, exactly as our CI server will.
 
 ```bash
-# Builds, starts, sets up, tests, and tears down the entire system.
+# This will build, start, set up, test, and tear down the entire system.
 make test
 ```
 
-## The Mandate of Correction (Bug Fix Protocol)
+A passing local test suite is a prerequisite for opening a Pull Request.
 
-All bug fixes **MUST** adhere to **Axiom 73: Mandated Regression Testing**.
+### Step 5: Open a Pull Request
 
-## Commit Message Hygiene
+Once your mission is complete and verified, push your branch to GitHub and open a Pull Request (PR) against the `main` branch.
 
-All commit messages **MUST** adhere to the **Conventional Commits** specification.
+```bash
+git push origin feature/fix-that-one-bug
+```
+
+In the PR description, clearly explain the "why" behind your change. What problem does it solve? Link to any relevant mission documents or issues.
+
+### Step 6: The Review Process
+
+Opening the PR will trigger two feedback loops:
+
+1.  **Automated Feedback:** Our CI/CD Gatekeeper will run `make test` again to provide an objective, automated verification of your change. You will see a green checkmark or a red "X" on your PR.
+2.  **Human Feedback:** At least one other team member will review your PR. They will check for correctness, clarity, and adherence to our architectural principles.
+
+Be prepared to respond to feedback and make additional changes. To update your PR, simply commit and push to the same branch.
+
+### Step 7: The Merge
+
+Once your PR is approved and all checks are passing, a team member will **"Squash and Merge"** your change into the `main` branch. This combines all of your commits into a single, clean commit in the project's history.
+
+Congratulations, you have successfully contributed to CHORUS!
+
+---
+
+For more advanced topics, such as our failure recovery and collaborative workflows, please see the full Standard Operating Procedures in the [🔱 The Development Protocol](./07_THE_DEVELOPMENT_PROTOCOL.md).

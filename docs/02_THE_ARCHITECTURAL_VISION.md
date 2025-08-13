@@ -6,6 +6,22 @@ This document provides a series of architectural diagrams based on the **C4 Mode
 
 ---
 
+## The Living Architecture: A Federation of Components
+
+The CHORUS system is not viewed as a set of rigid, static layers, but as a dynamic federation of logical components. This component-based model provides the flexibility to focus on specific areas of the codebase for any given mission, while abstracting the rest.
+
+### The System Atlas: `docs/components.json`
+
+The canonical definition of the system's architecture resides in the **System Atlas** file: `docs/components.json`. This file is the single source of truth that maps logical component names (e.g., "WebUI", "AnalystTier") to the physical files and directories that constitute them.
+
+### Component Abstracts: `docs/component_abstracts/`
+
+For every component defined in the System Atlas, a corresponding high-level "Component Abstract" exists in the `docs/component_abstracts/` directory. These abstracts describe the component's purpose, its primary interactions, and its key data flows in a token-efficient, human-readable format.
+
+During a mission, only the "hot" component (the one being actively modified) is loaded as full source code. All other "cold" components are represented by their abstracts, dramatically reducing context size while preserving architectural understanding.
+
+---
+
 ### **Diagram 1: The Observatory (C4 Level 1: System Context)**
 
 This diagram places the CHORUS engine in its world. It shows how it interacts with users and the vast, noisy universe of open-source data. It answers the question: What is CHORUS and who uses it?

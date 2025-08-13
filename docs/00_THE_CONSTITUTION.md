@@ -1,5 +1,3 @@
-# Filename: docs/01_CONSTITUTION.md
-
 # 🔱 The CHORUS Constitution & Architectural Blueprint
 
 _Document Version: 8.0 (The Mandate of Stability)_
@@ -23,7 +21,7 @@ _Last Updated: 2025-08-08_
 
 ## Part 2: The Axioms of CHORUS Development
 
-_This section codifies all 81 inviolable principles, organized into a cohesive framework. All code and architectural decisions MUST adhere to these axioms._
+_This section codifies all inviolable principles, organized into a cohesive framework. All code and architectural decisions MUST adhere to these axioms._
 
 ### I. Foundational Principles
 
@@ -138,3 +136,11 @@ _These Axioms are the direct result of the "Great Spiral of Failure" and are cod
 79. **Axiom of Idempotent Orchestration:** All primary `make` targets for starting an environment (e.g., `make run-dev`) MUST be idempotent. They must be architecturally designed to produce the exact same healthy, running state, regardless of the system's state before the command was run. This is achieved by ensuring the first step of any "up" command is a complete and robust "down" command for that specific environment.
 80. **Axiom of Headless Verification:** The primary verification environment (`test`) MUST be completely headless. It shall not expose any ports to the host machine. This architecturally guarantees that it can run concurrently with any other environment without any possibility of a network port conflict.
 81. **Axiom of Infrastructure Sanctity:** The core infrastructure configuration files (`Makefile`, all `docker-compose.*.yml` files, all `.env.*` files) are now considered a stable, verified baseline. They shall not be modified unless a new mission explicitly and justifiably requires an infrastructure change. Any proposed change to these files must be treated with the highest level of scrutiny and be accompanied by a formal amendment proposal.
+
+### VIII. Principles of Co-Evolution
+
+_These axioms govern the dynamic, interactive relationship between the human operators and the AI, establishing the principle of a "living architecture" that evolves with the mission._
+
+82. **Axiom of the Living Architecture:** The system's architecture is not a static artifact; it is a dynamic federation of logical components. The AI's context and our tooling must reflect this reality, allowing for the flexible and focused modification of individual components.
+83. **Axiom of AI Agency:** The AI is not merely a passive recipient of context. It must be empowered to request deeper knowledge and propose architectural changes when a mission's requirements demand it. The system's tooling must provide a formal interface for the AI to express these needs.
+84. **Axiom of Atomic Refactoring:** All architectural changes—migrating files, creating or deleting components—MUST be executed by a robust, validating tool. The tool, not the AI, is responsible for modifying the master component manifest, ensuring its integrity and preventing corruption of the architectural source of truth.

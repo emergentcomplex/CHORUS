@@ -1,49 +1,42 @@
 # Filename: chorus_engine/core/entities.py
-#
-# 🔱 CHORUS Autonomous OSINT Engine
-#
-# This file defines the core business objects (Entities) of the CHORUS system.
-# These are pure data structures with no dependencies on external frameworks,
-# databases, or UI components. They represent the highest-level concepts
-# in the architecture.
+# 🔱 CHORUS Core Domain Entities
 
-from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
-
-class Persona(BaseModel):
-    """
-    Represents an AI persona's core identity, worldview, and guiding principles.
-    This is a pure business object, independent of how it is stored.
-    """
-    id: str = Field(..., description="The unique identifier for the persona, e.g., 'analyst_hawk'.")
-    name: str = Field(..., description="The human-readable name of the persona.")
-    worldview: str = Field(..., description="A description of the persona's core beliefs and perspective.")
-    axioms: List[str] = Field(..., description="A list of inviolable rules that guide the persona's analysis.")
+# THE DEFINITIVE FIX: Import the missing 'Optional' type hint.
+from typing import Dict, Any, List, Optional
+import datetime
 
 class AnalysisTask(BaseModel):
-    """
-    Represents a single, top-level analysis request in the system.
-    """
-    query_hash: str = Field(..., description="The unique MD5 hash of the user query.")
-    user_query: Dict[str, Any] = Field(..., description="The original query submitted by the user.")
-    status: str = Field(..., description="The current status of the task (e.g., PENDING, IN_PROGRESS).")
-    worker_id: Optional[str] = Field(None, description="The ID of the worker currently processing the task.")
+    """Represents a single, stateful analysis task."""
+    query_hash: str
+    user_query: Dict[str, Any]
+    status: str
+    worker_id: Optional[str] = None
+    created_at: Optional[datetime.datetime] = None
+    started_at: Optional[datetime.datetime] = None
+    completed_at: Optional[datetime.datetime] = None
 
-class HarvesterTask(BaseModel):
-    """
-    Represents a data collection task to be executed by a harvester.
-    """
-    task_id: int = Field(..., description="The unique ID for the harvesting task.")
-    script_name: str = Field(..., description="The name of the harvester script to execute.")
-    status: str = Field(..., description="The current status of the task (e.g., IDLE, IN_PROGRESS).")
-    parameters: Dict[str, Any] = Field(..., description="The parameters for the harvester, e.g., keywords.")
+class Persona(BaseModel):
+    """Represents an AI persona's configuration and identity."""
+    persona_id: str = Field(..., alias='persona_name')
+    tier: int = Field(..., alias='persona_tier')
+    description: str = Field(..., alias='persona_description')
+    subordinates: Optional[List[str]] = Field(None, alias='subordinate_personas')
+
+    class Config:
+        populate_by_name = True
 
 class AnalysisReport(BaseModel):
-    """
-    Represents the final, structured output of an analysis pipeline.
-    """
-    narrative_analysis: str = Field(..., description="The main, multi-paragraph narrative of the report.")
-    argument_map: str = Field(..., description="A structured map of claims and supporting evidence.")
-    intelligence_gaps: str = Field(..., description="A list of identified intelligence gaps.")
+    """Represents the structured output of an analyst's work."""
+    persona_id: str = Field(..., description="The ID of the persona who generated this report.")
+    query_hash: str = Field(..., description="The query hash this report belongs to.")
+    title: str = Field(..., description="A concise, descriptive title for the report.")
+    summary: str = Field(..., description="A one-paragraph executive summary of the key findings.")
+    findings: List[str] = Field(..., description="A bulleted list of the most critical, evidence-based findings.")
+    confidence_score: float = Field(..., ge=0.0, le=1.0, description="The analyst's confidence in their findings, from 0.0 to 1.0.")
     raw_text: Optional[str] = Field(None, description="The complete, raw text output from the LLM for archival.")
 
+class HarvesterTask(BaseModel):
+    """Represents a task for a harvester to go and collect data."""
+    script_name: str
+    associated_keywords: List[str]

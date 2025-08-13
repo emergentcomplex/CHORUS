@@ -1,5 +1,5 @@
 # Filename: Dockerfile
-# 🔱 CHORUS Application Image (v3 - Correct Cache Permissions)
+# 🔱 CHORUS Application Image (v5 - Final Datalake Permissions)
 
 FROM chorus-base:latest
 
@@ -11,6 +11,11 @@ RUN useradd -m appuser
 RUN mkdir -p /app/datalake /app/logs /app/.pytest_cache && \
     chown -R appuser:appuser /app
 
+# THE DEFINITIVE FIX: Make the datalake directory world-writable.
+# This ensures that the non-root appuser inside the container can write to
+# the volume mounted from the host, regardless of the host user's UID.
+RUN chmod 777 /app/datalake
+
 # 3. Switch to the non-root user *before* copying and installing.
 USER appuser
 
@@ -20,8 +25,7 @@ COPY --chown=appuser:appuser . .
 # 5. Install the application itself into the existing environment.
 RUN pip install --no-cache-dir --no-deps .
 
-# THE DEFINITIVE FIX (PART 2): Ensure the cache directory exists and is owned by appuser.
-# This command runs as appuser, guaranteeing correct permissions.
+# 6. Ensure the cache directory exists and is owned by appuser.
 RUN mkdir -p /app/.pytest_cache
 
 # The default command is set in docker-compose.

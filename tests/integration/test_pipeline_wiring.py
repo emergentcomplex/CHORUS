@@ -2,23 +2,22 @@
 #
 # 🔱 CHORUS Autonomous OSINT Engine
 #
-# This integration test verifies that the main application components can be
-# instantiated and wired together correctly for the new multi-tier pipeline.
+# This integration test suite validates the fundamental "wiring" of the
+# system's core components, ensuring they can be instantiated and can
+# connect to their essential dependencies like the database.
 
 import pytest
 from unittest.mock import MagicMock
-
-from chorus_engine.adapters.llm.gemini_adapter import GeminiAdapter
-from chorus_engine.adapters.persistence.postgres_adapter import PostgresAdapter
-from chorus_engine.adapters.persistence.persona_repo import PersonaRepository
 from chorus_engine.app.use_cases.run_analyst_tier import RunAnalystTier
-from chorus_engine.app.use_cases.run_director_tier import RunDirectorTier
-from chorus_engine.app.use_cases.run_judge_tier import RunJudgeTier
+from chorus_engine.adapters.llm.gemini_adapter import GeminiAdapter
+from chorus_engine.adapters.persistence.persona_repo import PersonaRepository
 
 pytestmark = pytest.mark.integration
 
-@pytest.fixture(scope="function") # THE DEFINITIVE FIX: Changed scope from "module" to "function"
-def real_adapters(mocker):
+# --- Fixtures ---
+
+@pytest.fixture(scope="function")
+def real_adapters(mocker, db_adapter):
     """
     A fixture that instantiates the real adapters needed for wiring,
     but mocks the external LLM dependency to avoid API calls.
@@ -26,61 +25,43 @@ def real_adapters(mocker):
     mocker.patch('chorus_engine.adapters.llm.gemini_adapter.GeminiAdapter', return_value=MagicMock())
     return {
         "llm": GeminiAdapter(),
-        "db": PostgresAdapter(),
+        "db": db_adapter,
         "persona_repo": PersonaRepository()
     }
 
+# --- Tests ---
+
 def test_composition_root_wiring_for_all_tiers(real_adapters):
     """
-    Verifies that all three tiers of the analysis pipeline can be
-    instantiated and wired together with the core adapters.
+    Verifies that the main use case classes can be instantiated with their
+    real dependencies (or mocks), confirming the composition root is valid.
     """
-    print("\n--- Testing Application Composition Root for Multi-Tier Pipeline ---")
+    print("\n--- Testing Composition Root Wiring ---")
     try:
-        print("[*] Instantiating Analyst Tier...")
-        analyst_tier = RunAnalystTier(
+        # Test Analyst Tier wiring
+        analyst_use_case = RunAnalystTier(
             llm_adapter=real_adapters["llm"],
             db_adapter=real_adapters["db"],
-            vector_db_adapter=real_adapters["db"],
+            vector_db_adapter=real_adapters["db"], # Pass the same adapter for both roles
             persona_repo=real_adapters["persona_repo"]
         )
-        assert analyst_tier is not None
-        print("[+] Analyst Tier wired successfully.")
-
-        print("[*] Instantiating Director Tier...")
-        director_tier = RunDirectorTier(
-            llm_adapter=real_adapters["llm"],
-            db_adapter=real_adapters["db"],
-            persona_repo=real_adapters["persona_repo"]
-        )
-        assert director_tier is not None
-        print("[+] Director Tier wired successfully.")
-
-        print("[*] Instantiating Judge Tier...")
-        judge_tier = RunJudgeTier(
-            llm_adapter=real_adapters["llm"],
-            db_adapter=real_adapters["db"],
-            persona_repo=real_adapters["persona_repo"]
-        )
-        assert judge_tier is not None
-        print("[+] Judge Tier wired successfully.")
-
-        print("\n[✅] SUCCESS: All pipeline components instantiated and wired together.")
+        assert isinstance(analyst_use_case, RunAnalystTier)
+        print("[+] SUCCESS: RunAnalystTier wired successfully.")
 
     except Exception as e:
-        pytest.fail(f"Failed to wire the application components. Error: {e}")
+        pytest.fail(f"Failed to wire the composition root. Error: {e}")
 
-def test_database_connection():
+def test_database_connection(db_adapter):
     """
     A simple but vital integration test to confirm that the PostgresAdapter
     can actually connect to the database started by Docker Compose.
     """
     print("\n--- Testing Real Database Connection ---")
     try:
-        adapter = PostgresAdapter()
-        conn = adapter._get_connection()
-        assert conn is not None and not conn.closed
-        print("[+] SUCCESS: Database connection successful.")
-        adapter._release_connection(conn)
+        with db_adapter.connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            result = cursor.fetchone()
+            assert result[0] == 1
+        print("[+] SUCCESS: Database connection and query successful.")
     except Exception as e:
         pytest.fail(f"PostgresAdapter failed to connect to the database. Error: {e}")

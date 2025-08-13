@@ -58,6 +58,11 @@ class DatabaseInterface(abc.ABC):
     """
 
     @abc.abstractmethod
+    def get_task(self, query_hash: str) -> Optional[Dict[str, Any]]:
+        """Fetches a single task's details from the database."""
+        pass
+
+    @abc.abstractmethod
     def get_available_harvesters(self) -> List[str]:
         """Retrieves a list of unique harvester script names from the tasks table."""
         pass
@@ -121,3 +126,8 @@ class DatabaseInterface(abc.ABC):
     def load_data_from_datalake(self) -> Dict[str, Any]:
         """Loads the most recent data from all sources in the datalake."""
         pass
+
+# Aliases for backward compatibility with refactored use cases.
+LLMAdapter = LLMInterface
+PersistenceAdapter = DatabaseInterface
+PersonaRepository = PersonaRepositoryInterface

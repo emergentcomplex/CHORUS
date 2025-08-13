@@ -1,5 +1,11 @@
 # Filename: docker-compose.test.yml
-# 🔱 CHORUS VERIFICATION ENVIRONMENT (v18 - Resilient Orchestration)
+# 🔱 CHORUS VERIFICATION ENVIRONMENT (v20 - Named Volume Mandate)
+
+# THE DEFINITIVE FIX: Define a named volume for the test datalake.
+# This keeps all file I/O within Docker's control, avoiding host permission issues.
+volumes:
+  test_datalake_vol:
+    name: ${COMPOSE_PROJECT_NAME}_test_datalake_vol
 
 networks:
   chorus-net:
@@ -12,7 +18,8 @@ x-chorus-app: &chorus-app
   env_file: .env.test
   volumes:
     - .:/app
-    - ./datalake:/app/datalake
+    # Both the tester and vectorizer will share this named volume.
+    - test_datalake_vol:/app/datalake
     - ./logs:/app/logs
   dns:
     - 8.8.8.8
@@ -31,6 +38,7 @@ services:
       - type: volume
         target: /var/lib/postgresql/data
       - ./infrastructure/postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     command: postgres -c wal_level=logical
     healthcheck:
       test:
@@ -87,33 +95,58 @@ services:
       CONFIG_STORAGE_TOPIC: chorus-connect-configs
       OFFSET_STORAGE_TOPIC: chorus-connect-offsets
       STATUS_STORAGE_TOPIC: chorus-connect-status
-    # HEALTHCHECK REMOVED - This is the key change.
+
+  chorus-embedder:
+    <<: *chorus-app
+    container_name: ${COMPOSE_PROJECT_NAME}-chorus-embedder
+    hostname: chorus-embedder
+    command:
+      ["gunicorn", "--bind", "0.0.0.0:5003", "--workers=1", "wsgi_embedder:app"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
 
   chorus-web:
     <<: *chorus-app
     container_name: ${COMPOSE_PROJECT_NAME}-chorus-web
     command:
       ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "wsgi:app"]
-    depends_on: [postgres, redis]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      chorus-embedder: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5001/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   chorus-launcher:
     <<: *chorus-app
     container_name: ${COMPOSE_PROJECT_NAME}-chorus-launcher
     command: ["python", "-m", "chorus_engine.infrastructure.daemons.launcher"]
-    depends_on: [postgres]
+    depends_on:
+      postgres: { condition: service_healthy }
+      chorus-embedder: { condition: service_healthy }
 
   chorus-synthesis-daemon:
     <<: *chorus-app
     container_name: ${COMPOSE_PROJECT_NAME}-chorus-synthesis-daemon
     command:
       ["python", "-m", "chorus_engine.infrastructure.daemons.synthesis_daemon"]
-    depends_on: [postgres]
+    depends_on:
+      postgres: { condition: service_healthy }
+      chorus-embedder: { condition: service_healthy }
 
   chorus-sentinel:
     <<: *chorus-app
     container_name: ${COMPOSE_PROJECT_NAME}-chorus-sentinel
     command: ["python", "-m", "chorus_engine.infrastructure.daemons.sentinel"]
-    depends_on: [postgres]
+    depends_on:
+      postgres: { condition: service_healthy }
 
   chorus-stream-processor:
     <<: *chorus-app
@@ -124,9 +157,17 @@ services:
         "-m",
         "chorus_engine.infrastructure.services.task_state_manager",
       ]
-    depends_on: [redis, redpanda]
-    environment:
-      - KAFKA_BROKER=redpanda:29092
+    depends_on:
+      redis: { condition: service_healthy }
+      redpanda: { condition: service_healthy }
+
+  chorus-vectorizer:
+    <<: *chorus-app
+    container_name: ${COMPOSE_PROJECT_NAME}-chorus-vectorizer
+    command: ["python", "-m", "chorus_engine.infrastructure.daemons.vectorizer"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      chorus-embedder: { condition: service_healthy }
 
   chorus-tester:
     <<: *chorus-app
@@ -135,9 +176,11 @@ services:
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     depends_on:
-      - chorus-web
-      - chorus-launcher
-      - chorus-synthesis-daemon
-      - chorus-sentinel
-      - chorus-stream-processor
-      - kafka-connect
+      chorus-web: { condition: service_healthy }
+      chorus-launcher: { condition: service_started }
+      chorus-synthesis-daemon: { condition: service_started }
+      chorus-sentinel: { condition: service_started }
+      chorus-stream-processor: { condition: service_started }
+      chorus-vectorizer: { condition: service_started }
+      kafka-connect: { condition: service_started }
+      chorus-embedder: { condition: service_healthy }

@@ -1,5 +1,5 @@
 -- Filename: infrastructure/postgres/init.sql
--- 🔱 CHORUS Database Schema (v9 - The Final, Correct Schema)
+-- 🔱 CHORUS Database Schema (v10.1 - Correct Vector Dimensions)
 
 -- Drop existing tables to ensure a clean slate
 DROP TABLE IF EXISTS task_progress CASCADE;
@@ -8,6 +8,7 @@ DROP TABLE IF EXISTS analyst_reports CASCADE;
 DROP TABLE IF EXISTS director_briefings CASCADE;
 DROP TABLE IF EXISTS harvesting_tasks CASCADE;
 DROP TABLE IF EXISTS dsv_embeddings CASCADE;
+DROP TABLE IF EXISTS semantic_vectors CASCADE;
 DROP TABLE IF EXISTS task_queue CASCADE;
 DROP TYPE IF EXISTS task_status_enum;
 
@@ -80,12 +81,22 @@ CREATE TABLE harvesting_tasks (
     parent_query_hash VARCHAR(32) REFERENCES task_queue(query_hash) ON DELETE SET NULL
 );
 
--- Table for vector embeddings
-CREATE TABLE dsv_embeddings (
-    dsv_line_id VARCHAR(255) PRIMARY KEY,
-    content TEXT,
-    embedding vector(768)
+-- The new canonical table for the unified semantic space
+CREATE TABLE semantic_vectors (
+    vector_id UUID PRIMARY KEY,
+    source_vertical VARCHAR(50) NOT NULL,
+    source_identifier TEXT NOT NULL,
+    document_date TIMESTAMPTZ,
+    content_chunk TEXT NOT NULL,
+    -- THE DEFINITIVE FIX: Correct the vector dimensions to match the model's output.
+    embedding vector(384),
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add indexes for faster lookups
+CREATE INDEX idx_semantic_vectors_source_vertical ON semantic_vectors(source_vertical);
+CREATE INDEX idx_semantic_vectors_document_date ON semantic_vectors(document_date);
+
 
 -- Add the task_queue table to the publication for CDC
 ALTER PUBLICATION debezium_chorus_pub ADD TABLE task_queue;

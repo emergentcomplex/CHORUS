@@ -92,14 +92,22 @@ _This document is a core part of our systemic learning process, fulfilling **Axi
 - **The Ground Truth (The Reason for Failure):** In a complex, multi-environment system, a single configuration error can create cascading failures that present as deep, complex architectural problems. The `COMPOSE_PROJECT_NAME` mismatch in `.env.prod` was the true root cause of many of the container name conflicts.
 - **The Lesson:** All configuration is code. It must be treated with the same rigor, scrutiny, and verification as application code. Suspect the simplest possible error first.
 
+**Hypothesis #13: The `.gitignore` is an Infallible Guardian**
 
+- **The Flawed Belief:** Adding a file path to `.gitignore` is a sufficient and complete security measure to prevent that file from ever being committed to the repository.
+- **The Manifestation (The Error):** The `.secrets` file, containing sensitive API keys, was accidentally staged and committed to the repository, requiring a historical rewrite and a security protocol update.
+- **The Ground Truth (The Reason for Failure):** The `.gitignore` file only prevents _untracked_ files from being accidentally added. It does nothing to prevent a file that has been explicitly staged (e.g., via `git add .` or `git add -f`) from being committed. It is a powerful convention, but it is not an enforced security boundary. Human error can and will bypass it.
+- **The Lesson:** Security requires defense-in-depth. The `.gitignore` file is the necessary first layer of defense, but it is insufficient on its own. A second, automated layer, such as a pre-commit hook that explicitly blocks the staging of sensitive files, is required to create a truly resilient and error-proof system. We must automate our security protocols to protect against our own fallibility.
 
-**Hypothesis #14: The `.gitignore` is an Infallible Guardian**
+**Hypothesis #14: A Singleton Worker is a Fork-Safe Worker**
 
--   **The Flawed Belief:** Adding a file path to `.gitignore` is a sufficient and complete security measure to prevent that file from ever being committed to the repository.
--   **The Manifestation (The Error):** The `.secrets` file, containing sensitive API keys, was accidentally staged and committed to the repository, requiring a historical rewrite and a security protocol update.
--   **The Ground Truth (The Reason for Failure):** The `.gitignore` file only prevents *untracked* files from being accidentally added. It does nothing to prevent a file that has been explicitly staged (e.g., via `git add .` or `git add -f`) from being committed. It is a powerful convention, but it is not an enforced security boundary. Human error can and will bypass it.
--   **The Lesson:** Security requires defense-in-depth. The `.gitignore` file is the necessary first layer of defense, but it is insufficient on its own. A second, automated layer, such as a pre-commit hook that explicitly blocks the staging of sensitive files, is required to create a truly resilient and error-proof system. We must automate our security protocols to protect against our own fallibility.
+- **The Flawed Belief: That configuring a Gunicorn service with --workers=1 was sufficient to prevent the process-level conflicts that corrupt complex libraries like PyTorch. We believed that "one worker" meant "one process" and thus no fork().**
+
+- **The Manifestation (The Error): A complete deadlock of the embedding service. The service would start and report as healthy, but upon receiving its first request, the Gunicorn worker process would spike to 100% CPU utilization indefinitely, never responding. This caused all dependent services to time out, leading to a persistent, hard-to-debug failure of the RAG pipeline test.**
+
+- **The Ground Truth (The Reason for Failure): Gunicorn's default sync worker is a forking worker. The master process starts, and then it forks itself to create the worker process that handles requests. This fork() system call is poison to a library like PyTorch that manages its own complex internal thread pools. The forked child process inherits a corrupted, deadlocked library state.**
+
+- **The Lesson: The Singleton Process Principle is not just about the number of workers; it is about the nature of the worker. To safely serve libraries that are not fork-safe, we MUST explicitly configure Gunicorn to use a non-forking worker class, such as gthread (threaded). The configuration --workers=1 --worker-class=gthread is the definitive, correct pattern.**
 
 ---
 

@@ -1,0 +1,66 @@
+# Filename: docker-compose.state.yml
+# 🔱 CHORUS Isolated State Machine Test Environment
+
+networks:
+  chorus-net:
+    name: ${COMPOSE_PROJECT_NAME}_chorus-net
+
+x-chorus-app: &chorus-app
+  build: .
+  image: chorus-app:test
+  networks: [chorus-net]
+  env_file: .env.test
+  volumes:
+    - .:/app
+  dns:
+    - 8.8.8.8
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ${COMPOSE_PROJECT_NAME}-postgres
+    hostname: postgres
+    networks: [chorus-net]
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - type: volume
+        target: /var/lib/postgresql/data
+      - ./infrastructure/postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: postgres -c wal_level=logical
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${DB_USER} -d $${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  chorus-embedder:
+    <<: *chorus-app
+    container_name: ${COMPOSE_PROJECT_NAME}-chorus-embedder
+    hostname: chorus-embedder
+    command:
+      [
+        "gunicorn",
+        "--bind",
+        "0.0.0.0:5003",
+        "--workers=1",
+        "--worker-class=gthread",
+        "wsgi_embedder:app",
+      ]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  chorus-tester:
+    <<: *chorus-app
+    container_name: ${COMPOSE_PROJECT_NAME}-chorus-tester
+    command: ["sleep", "infinity"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      chorus-embedder: { condition: service_healthy }

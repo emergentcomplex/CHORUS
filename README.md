@@ -1,5 +1,12 @@
 ### Filename: `README.md`
 
+**NOTICE**
+
+This repo is being archived. I toyed with things for a month. About ten days in I proved the system to myself. A/B testing showed improvements in our multi-tier persona architecture over a single llm call. I've had a wicked evolution of ideas. The work continues on. There are ten repos in private that will continue to unfold my vision as it relates to my ability to operate within it. I choose to embark on a two year journey that will see personal, familial, community, and human development along a multi-layered ark. That's not a typo. It's the vehicle we're using to navigate the tumultuous tides this century. My work will enter the public domain again. 
+
+Expect great things. Then you won't be disappointed. I strive for excellence.
+
+
 <p align="center">
   <a href="#">
     <img src="https://img.shields.io/badge/CHORUS-Judgment%20Engine-teal?style=for-the-badge" alt="Project Title">
